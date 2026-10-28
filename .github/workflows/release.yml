@@ -9,14 +9,15 @@ on:
             version:
                 description: 'Version (with or without v prefix), e.g. 1.2.3'
                 required: true
-                default: '1.0.1'
+                default: '1.0.2'
 
 permissions:
     contents: write
 
 env:
     WAILS_VERSION: v2.9.3
-    BUN_VERSION: '1.1.38'
+    # Must match the Bun that wrote frontend/bun.lockb (frozen-lockfile).
+    BUN_VERSION: '1.4.2'
     # Pin to go.mod — `stable` (e.g. 1.27) breaks Wails/CGO builds with
     # "package … without types was imported" internal compiler errors.
     GOTOOLCHAIN: local
@@ -56,6 +57,12 @@ jobs:
             - uses: oven-sh/setup-bun@v2
               with:
                   bun-version: ${{ env.BUN_VERSION }}
+
+            - name: Verify Bun lockfile
+              working-directory: frontend
+              run: |
+                  bun --version
+                  bun install --frozen-lockfile
 
             - name: Stamp version
               run: |
@@ -134,6 +141,12 @@ jobs:
             - uses: oven-sh/setup-bun@v2
               with:
                   bun-version: ${{ env.BUN_VERSION }}
+
+            - name: Verify Bun lockfile
+              working-directory: frontend
+              run: |
+                  bun --version
+                  bun install --frozen-lockfile
 
             - name: Stamp version
               run: |
@@ -244,6 +257,13 @@ jobs:
             - uses: actions/setup-node@v4
               with:
                   node-version: '20'
+
+            - name: Verify Bun lockfile
+              shell: bash
+              working-directory: frontend
+              run: |
+                  bun --version
+                  bun install --frozen-lockfile
 
             - name: Stamp version
               shell: bash

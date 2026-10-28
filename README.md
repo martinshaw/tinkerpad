@@ -90,8 +90,8 @@ When a newer release is published, the title bar can show **Update** and open a 
 ### Publishing a release (maintainers)
 
 ```shell
-git tag v1.0.1
-git push origin v1.0.1
+git tag v1.0.2
+git push origin v1.0.2
 ```
 
 Or run the **Release** workflow from the Actions tab (`workflow_dispatch`). CI builds macOS, Linux (amd64/arm64), and Windows artifacts and attaches them to the GitHub Release.
@@ -103,7 +103,7 @@ Or run the **Release** workflow from the Actions tab (`workflow_dispatch`). CI b
 ### Prerequisites
 
 * [Go](https://go.dev/dl/) 1.24+
-* [Bun](https://bun.sh/) (CI uses 1.1.38)
+* [Bun](https://bun.sh/) (CI uses 1.4.2)
 * [Wails CLI](https://wails.io/docs/gettingstarted/installation) v2.9.3
 * PHP 8.x on your `PATH`
 * [Composer](https://getcomposer.org/) (only to rebuild `resources/bin/php.phar`)
@@ -135,7 +135,7 @@ After changing `php/`, rebuild the embedded runner:
 make phar
 ```
 
-`make help` lists all targets. Optional: `VERSION=v1.0.1 ENCRYPT_SECRET=… make build`.
+`make help` lists all targets. Optional: `VERSION=v1.0.2 ENCRYPT_SECRET=… make build`.
 
 ---
 
