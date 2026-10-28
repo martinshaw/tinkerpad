@@ -13,15 +13,17 @@ class ExecutionClosure extends PsyExecutionClosure
             try {
                 \extract($shell->getScopeVariables(false));
 
+                // chunk_size=1 flushes after each output write so separate
+                // echo/print calls become distinct result cards instead of one blob.
                 \ob_start(function ($cnt) {
                     if (!trim($cnt)) {
                         return '';
                     }
-                    
+
                     Runner::getInstance()->addOutput($cnt);
 
                     return '';
-                });
+                }, 1);
 
                 \set_error_handler([$shell, 'handleError']);
 

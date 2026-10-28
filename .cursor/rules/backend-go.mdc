@@ -1,0 +1,14 @@
+---
+description: Go/Wails backend conventions for Tinkerpad
+globs: backend/**/*.go,main.go
+alwaysApply: false
+---
+
+# Backend (Go / Wails)
+
+- Services under `backend/<name>` with `New` + `Boot`; bound from `main.go`.
+- PHP runs: `backend/php` — `RunResult` envelope; sessions in `session.go`.
+- Local/Docker/SSH must not start the process with cwd = user project for the PHAR (runner chdirs after autoload).
+- Config dir via xdg: `~/Library/Application Support/Tinkerpad` on macOS (extracts embedded resources on boot).
+- Storage JSON patterns follow `favorites` / `projects` (same config dir).
+- Run `gofmt` on touched Go files. Prefer `make build` to verify embed of `frontend/dist` + `resources`.

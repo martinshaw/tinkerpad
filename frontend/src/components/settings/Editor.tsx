@@ -1,8 +1,10 @@
 import { Component, createSignal, Show } from 'solid-js';
 import { useSettingsStore } from '../../stores/settings';
-import Input from '../Input';
 import { settings } from '../../../wailsjs/go/models';
-import Button from '../Button';
+import PrefSection from '../macos/PrefSection';
+import PrefRow from '../macos/PrefRow';
+import { PrefButton, PrefTextField, PrefToggle } from '../macos/PrefControl';
+import FontGallery from './FontGallery';
 
 const Editor: Component = () => {
     const [settingsStore] = useSettingsStore();
@@ -15,98 +17,121 @@ const Editor: Component = () => {
     };
 
     const hasErrors = () => Object.values(errors()).some(e => e);
+    const isDirty = () => settingsStore.app.editor != settings();
+
+    const setFontFamily = (fontFamily: string) => {
+        if (!fontFamily.trim()) {
+            setErrors({ ...errors(), fontFamily: 'Invalid value' });
+            return;
+        }
+        setSettings({ ...settings(), fontFamily } as settings.Editor);
+        setErrors({ ...errors(), fontFamily: '' });
+    };
 
     return (
-        <div class="py-2 flex flex-col gap-5">
-            <Input
-                label="Font Family"
-                error={errors().fontFamily}
-                value={settings().fontFamily}
-                type="text"
-                on:input={e => {
-                    const fontFamily = e.currentTarget.value;
+        <div>
+            <PrefSection
+                title="Font"
+                footer="Monospace fonts are listed first. Only faces available on this Mac are shown."
+            >
+                <div class="p-3.5">
+                    <Show when={errors().fontFamily}>
+                        <div class="text-[11px] text-red-500 mb-2">{errors().fontFamily}</div>
+                    </Show>
+                    <FontGallery value={settings().fontFamily} onChange={setFontFamily} />
+                </div>
+            </PrefSection>
 
-                    if (!fontFamily) {
-                        setErrors({ ...errors(), fontFamily: 'Invalid value' });
-                        return;
-                    }
+            <PrefSection title="Typography">
+                <PrefRow label="Font Size" error={errors().fontSize}>
+                    <PrefTextField
+                        class="!max-w-[8rem] text-right"
+                        value={settings().fontSize}
+                        type="number"
+                        on:input={e => {
+                            const size = Number(e.currentTarget.value);
+                            if (size < 10 || size > 28) {
+                                setErrors({
+                                    ...errors(),
+                                    fontSize: 'Use a value between 10 and 28',
+                                });
+                                return;
+                            }
+                            setSettings({ ...settings(), fontSize: size } as settings.Editor);
+                            setErrors({ ...errors(), fontSize: '' });
+                        }}
+                    />
+                </PrefRow>
+                <PrefRow label="Line Height" error={errors().lineHeight}>
+                    <PrefTextField
+                        class="!max-w-[8rem] text-right"
+                        value={settings().lineHeight}
+                        type="number"
+                        step={0.1}
+                        on:input={e => {
+                            const size = Number(e.currentTarget.value);
+                            if (size <= 0) {
+                                setErrors({ ...errors(), lineHeight: 'Invalid value' });
+                                return;
+                            }
+                            setSettings({ ...settings(), lineHeight: size } as settings.Editor);
+                            setErrors({ ...errors(), lineHeight: '' });
+                        }}
+                    />
+                </PrefRow>
+                <PrefRow label="Tab Size" error={errors().tabSize}>
+                    <PrefTextField
+                        class="!max-w-[8rem] text-right"
+                        value={settings().tabSize || 4}
+                        type="number"
+                        on:input={e => {
+                            const size = Number(e.currentTarget.value);
+                            if (size < 1 || size > 8) {
+                                setErrors({ ...errors(), tabSize: 'Invalid value' });
+                                return;
+                            }
+                            setSettings({ ...settings(), tabSize: size } as settings.Editor);
+                            setErrors({ ...errors(), tabSize: '' });
+                        }}
+                    />
+                </PrefRow>
+            </PrefSection>
 
-                    setSettings({ ...settings(), fontFamily: fontFamily } as settings.Editor);
-                    setErrors({ ...errors(), fontFamily: '' });
-                }}
-            />
-            <Input
-                label="Font Size"
-                error={errors().fontSize}
-                value={settings().fontSize}
-                type="number"
-                on:input={e => {
-                    const size = Number(e.currentTarget.value);
+            <PrefSection title="Display">
+                <PrefRow label="Word Wrap">
+                    <PrefToggle
+                        checked={settings().wordWrap}
+                        on:input={e => {
+                            setSettings({
+                                ...settings(),
+                                wordWrap: e.currentTarget.checked,
+                            } as settings.Editor);
+                        }}
+                    />
+                </PrefRow>
+                <PrefRow label="Line Numbers">
+                    <PrefToggle
+                        checked={settings().lineNumbers}
+                        on:input={e => {
+                            setSettings({
+                                ...settings(),
+                                lineNumbers: e.currentTarget.checked,
+                            } as settings.Editor);
+                        }}
+                    />
+                </PrefRow>
+            </PrefSection>
 
-                    if (size <= 10 || size > 20) {
-                        setErrors({ ...errors(), fontSize: 'Invalid value' });
-                        return;
-                    }
-
-                    setSettings({ ...settings(), fontSize: size } as settings.Editor);
-                    setErrors({ ...errors(), fontSize: '' });
-                }}
-            />
-            <Input
-                label="Line Height"
-                error={errors().lineHeight}
-                value={settings().lineHeight}
-                type="number"
-                step={0.1}
-                on:input={e => {
-                    const size = Number(e.currentTarget.value);
-
-                    if (size <= 0) {
-                        setErrors({ ...errors(), lineHeight: 'Invalid value' });
-                        return;
-                    }
-
-                    setSettings({ ...settings(), lineHeight: size } as settings.Editor);
-                    setErrors({ ...errors(), lineHeight: '' });
-                }}
-            />
-            <Input
-                label="Word Wrap"
-                error={errors().wordWrap}
-                checked={settings().wordWrap}
-                type="checkbox"
-                class="w-min mr-1 my-2.5"
-                step={0.1}
-                on:input={e => {
-                    const value = e.currentTarget.checked;
-
-                    setSettings({ ...settings(), wordWrap: value } as settings.Editor);
-                    setErrors({ ...errors(), wordWrap: '' });
-                }}
-            />
-            <Input
-                label="Line Numbers"
-                error={errors().lineNumbers}
-                checked={settings().lineNumbers}
-                type="checkbox"
-                class="w-min mr-1 my-2.5"
-                step={0.1}
-                on:input={e => {
-                    const value = e.currentTarget.checked;
-
-                    setSettings({ ...settings(), lineNumbers: value } as settings.Editor);
-                    setErrors({ ...errors(), lineNumbers: '' });
-                }}
-            />
-            <div class="mt-3">
-                <Button
+            <div class="flex items-center gap-3 max-w-2xl px-1">
+                <PrefButton
+                    variant="primary"
                     on:click={save}
-                    disabled={settingsStore.app.editor == settings() || hasErrors()}
+                    disabled={!isDirty() || hasErrors()}
                 >
                     Save
-                </Button>
-                <Show when={settingsStore.app.editor != settings() && !hasErrors()}>
-                    <span class="italic opacity-60 ml-2">unsaved changes!</span>
+                </PrefButton>
+                <Show when={isDirty() && !hasErrors()}>
+                    <span class="text-[12px] opacity-55">Unsaved changes</span>
                 </Show>
             </div>
         </div>

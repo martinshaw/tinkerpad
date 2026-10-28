@@ -1,0 +1,15 @@
+---
+description: Solid.js frontend conventions for Tinkerpad UI
+globs: frontend/src/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Frontend
+
+- Solid.js + Vite + Tailwind. Stores in `frontend/src/stores` via `solid-js/store`.
+- Wails calls: import from `../../wailsjs/go/...` (generated).
+- Monaco via `@codingame/monaco-vscode-editor-api` helpers in `utils/editor`.
+- Screens: `generalStore.currentScreen` (`Screen` enum). Code UI: tabs + status bar.
+- To clear optional tab fields use path `setStore`, not `{ key: undefined }` merges.
+- Keep status bar compact; put rare actions in popover menus.
+- Result views: Structured (HTML VarDumper), Raw (plaintext Monaco), Queries.

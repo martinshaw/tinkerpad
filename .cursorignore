@@ -1,0 +1,37 @@
+# Dependencies & generated frontend
+**/node_modules/
+frontend/dist/
+frontend/wailsjs/
+frontend/bun.lockb
+**/package-lock.json
+**/yarn.lock
+
+# PHP deps & compiled runner (edit php/src, then `make phar`)
+php/vendor/
+resources/bin/*.phar
+
+# Packaged app & build junk
+build/bin/
+**/*.app/
+**/*.dmg
+**/*.deb
+**/*.AppImage
+
+# Large / non-code assets
+screenshots/
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.ico
+**/*.icns
+**/*.tiff
+
+# Logs, OS, local IDE
+**/*.log
+**/.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Embedded sandbox vendor if present
+resources/sandbox/vendor/

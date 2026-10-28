@@ -1,0 +1,28 @@
+---
+description: Tinkerpad stack map, build commands, and cost-saving context rules
+alwaysApply: true
+---
+
+# Tinkerpad
+
+Go/Wails desktop app + Solid/Vite frontend + PHP PHAR runner.
+
+## Before reading files
+
+- Do **not** scan `node_modules`, `php/vendor`, `frontend/dist`, `build/bin`, or `*.phar`.
+- Prefer `frontend/src`, `backend`, `php/src`, `main.go`, `Makefile`.
+- Wails JS bindings are generated (`frontend/wailsjs`); regenerate with `make generate` / `wails generate module`.
+
+## After changing code
+
+| Change | Then |
+| --- | --- |
+| `php/**` | `make phar`, then rebuild/restart the app |
+| Go bindings / new exported methods | `wails generate module` (or `make generate`) |
+| Frontend or full app | `make build` or `make dev` |
+
+## Do not
+
+- Hand-edit `resources/bin/php.phar` or commit edits only to `frontend/wailsjs`.
+- Set local PHP `cmd.Dir` to the user project (breaks PHAR autoload).
+- Expand scope into unrelated refactors; match existing Solid/Go style.

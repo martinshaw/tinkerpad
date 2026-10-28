@@ -5,6 +5,7 @@ import { useSettingsStore } from '../../stores/settings';
 import { registerPHP } from './languages/php';
 import { useGeneralStore } from '../../stores/general';
 import { setContextMenu } from './context-menu';
+import { registerEditorActions } from './actions';
 
 export const createEditor = (
     container: HTMLElement,
@@ -24,7 +25,8 @@ export const createEditor = (
         fontSize: settingsStore.app.editor.fontSize,
         fontFamily: settingsStore.app.editor.fontFamily,
         lineHeight: settingsStore.app.editor.lineHeight,
-        lineNumbers: settingsStore.app.editor.lineNumbers ? 'on' : 'off',
+        lineNumbers: result ? 'off' : settingsStore.app.editor.lineNumbers ? 'on' : 'off',
+        tabSize: settingsStore.app.editor.tabSize || 4,
         minimap: {
             enabled: false,
         },
@@ -32,7 +34,7 @@ export const createEditor = (
             horizontalScrollbarSize: 5,
             verticalScrollbarSize: 5,
         },
-        wordWrap: settingsStore.app.editor.wordWrap ? 'on' : 'off',
+        wordWrap: result || settingsStore.app.editor.wordWrap ? 'on' : 'off',
         theme: generalStore.themeInfo.name,
         stickyScroll: {
             enabled: false,
@@ -40,9 +42,14 @@ export const createEditor = (
         automaticLayout: true,
         glyphMargin: false,
         scrollBeyondLastLine: false,
+        renderLineHighlight: result ? 'none' : 'line',
+        folding: !result,
     });
 
     setContextMenu(editor);
+    if (!result) {
+        registerEditorActions(editor);
+    }
 
     let editorModel = monaco.editor.getModel(monaco.Uri.file(file));
 
@@ -62,8 +69,13 @@ export const createEditor = (
 
     if (editorModel === null) {
         const code = result ? getParsedResult() : tab.code;
-        editorModel = monaco.editor.createModel(code, 'php', monaco.Uri.file(file));
+        editorModel = monaco.editor.createModel(
+            code,
+            result ? 'plaintext' : 'php',
+            monaco.Uri.file(file),
+        );
     } else if (result) {
+        monaco.editor.setModelLanguage(editorModel, 'plaintext');
         editorModel.setValue(getParsedResult());
     }
 

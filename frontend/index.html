@@ -6,6 +6,37 @@
         <meta name="theme-color" content="#000000" />
         <link rel="shortcut icon" type="image/ico" href="/src/assets/favicon.ico" />
         <title>Tinkerpad</title>
+        <style>
+            html,
+            body {
+                margin: 0;
+                background: #1e1e1e;
+                color: #e8e8e8;
+            }
+            @media (prefers-color-scheme: light) {
+                html,
+                body {
+                    background: #ffffff;
+                    color: #111111;
+                }
+            }
+        </style>
+        <script>
+            (function () {
+                try {
+                    var bg = localStorage.getItem('tinkerpad-bg');
+                    var fg = localStorage.getItem('tinkerpad-fg');
+                    if (bg) {
+                        document.documentElement.style.background = bg;
+                        document.documentElement.style.color = fg || '';
+                        document.addEventListener('DOMContentLoaded', function () {
+                            document.body.style.background = bg;
+                            if (fg) document.body.style.color = fg;
+                        });
+                    }
+                } catch (_) {}
+            })();
+        </script>
     </head>
     <body>
         <div id="root"></div>

@@ -9,7 +9,8 @@ import { RemoveConn } from '../../../wailsjs/go/ssh/Ssh';
 import Refresh from '../icons/Refresh';
 import { createTooltip } from '../../utils/tooltip/create';
 import Edit from './Edit';
-import XMark from '../icons/XMark';
+import SideShell, { SideNavButton } from '../macos/SideShell';
+import { PrefButton } from '../macos/PrefControl';
 
 const Config: Component = () => {
     const [selectedContainer, setSelectedContainer] = createSignal<
@@ -48,72 +49,57 @@ const Config: Component = () => {
     createTooltip('#refresh-containers-button', 'Refresh containers');
 
     return (
-        <div class="flex flex-col grow max-h-full">
-            <div
-                class="flex grow px-20 py-6 text-sm border-t cursor-default select-none max-h-full"
-                style={{
-                    'background-color': generalStore.themeInfo.colors.background,
-                    color: generalStore.themeInfo.colors.primary,
-                    'border-color': generalStore.themeInfo.colors.secondary,
-                }}
+        <div class="flex flex-col grow min-h-0">
+            <SideShell
+                title="Docker"
+                titleIcon={<Docker class="h-4 w-4" />}
+                contentTitle={selectedContainer()?.name || 'Containers'}
+                sidebarWidth="15rem"
+                trailing={
+                    <PrefButton
+                        id="refresh-containers-button"
+                        on:click={() => refetch()}
+                        disabled={containers.loading}
+                    >
+                        <span class="inline-flex items-center gap-1.5">
+                            <Refresh
+                                class="w-3.5"
+                                classList={{ 'animate-spin': containers.loading }}
+                            />
+                            Refresh
+                        </span>
+                    </PrefButton>
+                }
+                sidebar={
+                    <For
+                        each={containers() ?? []}
+                        fallback={
+                            <div class="px-2.5 py-1.5 opacity-50">No running containers.</div>
+                        }
+                    >
+                        {info => (
+                            <SideNavButton
+                                active={selectedContainer()?.id === info.id}
+                                title={info.name}
+                                onClick={() => setSelectedContainer(info)}
+                                icon={<Docker class="w-3.5" />}
+                            >
+                                {info.name}
+                            </SideNavButton>
+                        )}
+                    </For>
+                }
             >
-                <div
-                    class="flex relative flex-col gap-2 border-r px-7 min-w-[30%] max-w-[30%]"
-                    style={{ 'border-color': generalStore.themeInfo.colors.secondary }}
+                <Show
+                    keyed
+                    when={selectedContainer()}
+                    fallback={
+                        <div class="opacity-55">Select a running container to configure it.</div>
+                    }
                 >
-                    <XMark
-                        class="w-5 h-5 absolute top-[0.3rem] left-[-1.5rem] cursor-pointer hover:brightness-105"
-                        on:click={() => generalStore.setCurrentScreen(Screen.Code)}
-                    />
-                    <h1 class="text-lg mb-5 font-semibold drop-shadow">
-                        <Docker class="h-5 w-5 inline mr-1.5 -mt-0.5 transition-all duration-75" />
-                        Docker
-                    </h1>
-                    <h2 class="font-bold flex justify-between items-center">
-                        <span>Running local containers</span>
-                        <Refresh
-                            on:click={() => refetch()}
-                            id="refresh-containers-button"
-                            class="w-4"
-                            classList={{
-                                'animate-spin': containers.loading,
-                            }}
-                        />
-                    </h2>
-                    <hr
-                        class="my-2 -mx-3"
-                        style={{ 'border-color': generalStore.themeInfo.colors.secondary }}
-                    />
-                    <div class="flex flex-col max-h-[65%] overflow-y-auto soft-scrollbar">
-                        <For
-                            each={containers()!}
-                            fallback={<div>No Docker containers running yet.</div>}
-                        >
-                            {info => (
-                                <div class="flex items-center justify-between gap-3 group min-h-7 w-full pr-2">
-                                    <div
-                                        on:click={() => setSelectedContainer(info)}
-                                        class="max-w-[80%] w-[80%] truncate"
-                                        classList={{
-                                            'font-bold brightness-105':
-                                                selectedContainer()?.id === info.id,
-                                            'hover:brightness-125':
-                                                selectedContainer()?.id !== info.id,
-                                        }}
-                                    >
-                                        {info.name}
-                                    </div>
-                                </div>
-                            )}
-                        </For>
-                    </div>
-                </div>
-                <div class="grow px-7">
-                    <Show keyed when={selectedContainer()}>
-                        {info => <Edit info={info} saveInfo={saveInfo} />}
-                    </Show>
-                </div>
-            </div>
+                    {info => <Edit info={info} saveInfo={saveInfo} />}
+                </Show>
+            </SideShell>
             <Show when={codeStore.currentTab} keyed>
                 {tab => <StatusBar tab={tab} />}
             </Show>

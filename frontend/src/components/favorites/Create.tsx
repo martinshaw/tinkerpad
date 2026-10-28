@@ -11,6 +11,9 @@ const Create: Component<{
     saveFavorite: (favorite: favorites.Favorite) => Promise<void>;
 }> = props => {
     const [name, setName] = createSignal('');
+    const [folder, setFolder] = createSignal('');
+    const [tags, setTags] = createSignal('');
+    const [description, setDescription] = createSignal('');
     const [errors, setErrors] = createSignal({} as Record<string, string>);
     const [codeStore] = useCodeStore();
     const [generalStore] = useGeneralStore();
@@ -24,10 +27,9 @@ const Create: Component<{
                 type="text"
                 class="!max-w-[90%]"
                 on:input={e => {
-                    const name = e.currentTarget.value;
-
-                    if (name) {
-                        setName(name);
+                    const next = e.currentTarget.value;
+                    if (next) {
+                        setName(next);
                         setErrors({ ...errors(), name: '' });
                     } else {
                         setErrors({ ...errors(), name: 'Invalid name' });
@@ -35,8 +37,29 @@ const Create: Component<{
                 }}
             />
             <Input
+                label="Folder"
+                value={folder()}
+                type="text"
+                class="!max-w-[90%]"
+                on:input={e => setFolder(e.currentTarget.value)}
+            />
+            <Input
+                label="Tags"
+                value={tags()}
+                type="text"
+                class="!max-w-[90%]"
+                on:input={e => setTags(e.currentTarget.value)}
+            />
+            <Input
+                label="Description"
+                value={description()}
+                type="text"
+                class="!max-w-[90%]"
+                on:input={e => setDescription(e.currentTarget.value)}
+            />
+            <Input
                 label="Project"
-                value={codeStore.currentTab.workingDir}
+                value={codeStore.currentTab.projectName || codeStore.currentTab.workingDir}
                 type="text"
                 disabled
                 class="!max-w-[90%]"
@@ -56,6 +79,13 @@ const Create: Component<{
                             code: codeStore.currentTab.code,
                             workingDir: codeStore.currentTab.workingDir,
                             timestamp: Date.now(),
+                            folder: folder(),
+                            description: description(),
+                            projectId: codeStore.currentTab.projectId || '',
+                            tags: tags()
+                                .split(',')
+                                .map(tag => tag.trim())
+                                .filter(Boolean),
                         }),
                     )
                 }

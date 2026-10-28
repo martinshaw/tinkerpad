@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os/exec"
 	"runtime"
+	"tinkerpad/backend/herd"
 	"tinkerpad/backend/logger"
 	"tinkerpad/backend/storage"
 )
@@ -24,6 +25,7 @@ type Editor struct {
 	FontFamily  string  `json:"fontFamily"`
 	WordWrap    bool    `json:"wordWrap"`
 	LineNumbers bool    `json:"lineNumbers"`
+	TabSize     int     `json:"tabSize"`
 }
 
 type Settings struct {
@@ -51,6 +53,12 @@ func (settings *Settings) Boot(log *logger.Logger, storage *storage.Storage) {
 	}
 	if err = json.Unmarshal(app, &settings.App); err != nil {
 		log.Errorf("failed to unmarshal config: %v", err)
+	}
+	if settings.App == nil {
+		settings.App = settings.defaults()
+	}
+	if settings.App.Editor.TabSize <= 0 {
+		settings.App.Editor.TabSize = 4
 	}
 }
 
@@ -82,6 +90,7 @@ func (settings *Settings) defaults() *App {
 			LineHeight: 1.5,
 			FontFamily: "Menlo, monospace",
 			WordWrap:   true,
+			TabSize:    4,
 		},
 	}
 
@@ -108,6 +117,11 @@ func (settings *Settings) GetAppVersion() string {
 
 func (settings *Settings) IsLinux() bool {
 	return runtime.GOOS == "linux"
+}
+
+// ListHerdSites returns Laravel Herd parked site directories for workspace seeding.
+func (settings *Settings) ListHerdSites() []string {
+	return herd.ListSites()
 }
 
 func (settings *Settings) Save(data *App) error {

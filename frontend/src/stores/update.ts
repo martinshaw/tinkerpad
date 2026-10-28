@@ -5,6 +5,8 @@ export interface UpdateInfo {
     version: string;
     body: string;
     url: string;
+    releaseUrl: string;
+    assetName: string;
 }
 
 export interface UpdateStore {

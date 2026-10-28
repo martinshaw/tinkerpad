@@ -1,2 +1,26 @@
 application.log
 /**/.DS_Store
+
+# Dependencies & build (also keeps Cursor indexing lean)
+frontend/node_modules/
+frontend/dist/
+frontend/wailsjs/
+php/vendor/
+build/bin/
+resources/sandbox/vendor/
+*.log
+
+# Local / editor scratch
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Cursor agent plans (rules under .cursor/rules stay tracked)
+.cursor/plans/
+
+# OS / packaging leftovers
+*.dmg
+*.AppImage
+Thumbs.db

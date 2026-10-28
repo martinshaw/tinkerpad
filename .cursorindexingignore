@@ -1,0 +1,22 @@
+# Index less; still @-mentionable unless also in .cursorignore.
+# Keep search focused on source of truth.
+
+# Generated Wails bindings (regenerate with `wails generate module`)
+frontend/wailsjs/
+
+# Lockfiles & sums (huge diffs, low signal for search)
+frontend/bun.lockb
+go.sum
+php/composer.lock
+
+# Build packaging assets (icons, linux/deb trees)
+build/darwin/
+build/linux/
+build/windows/
+build/appicon.png
+
+# Screenshots & marketing assets
+screenshots/
+
+# PHP box / composer noise inside php/ if present
+php/vendor/

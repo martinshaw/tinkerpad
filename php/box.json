@@ -1,4 +1,5 @@
 {
     "output": "../resources/bin/php.phar",
-    "compression": "GZ"
+    "compression": "GZ",
+    "exclude-dev-files": true
 }

@@ -2,7 +2,6 @@ import { Component, createEffect, createResource, Show } from 'solid-js';
 import { Tab, useCodeStore } from '../../../stores/code';
 import { useGeneralStore } from '../../../stores/general';
 import LoaderCircle from '../../icons/LoaderCircle';
-import Code from '../../icons/Code';
 
 export type FrameworkInfo = {
     framework_name: string;
@@ -20,30 +19,31 @@ const FrameworkInfoLabel: Component<{ tab: Tab }> = props => {
     createEffect(() => refetch([props.tab.workingDir, props.tab.containerInfo, props.tab.sshConn]));
 
     return (
-        <>
-            <div
-                class="py-2 px-4 w-min text-center whitespace-nowrap select-none"
-                style={{ 'background-color': generalStore.themeInfo.colors.background }}
+        <div
+            class="h-full px-3 flex items-center max-w-[16rem] truncate whitespace-nowrap select-none opacity-80"
+            style={{ 'background-color': generalStore.themeInfo.colors.background }}
+            title={
+                frameworkInfo()
+                    ? `${frameworkInfo()!.framework_name} ${frameworkInfo()!.framework_version ?? ''} · PHP ${frameworkInfo()!.php_version}`
+                    : undefined
+            }
+        >
+            <Show
+                when={!frameworkInfo.loading}
+                fallback={<LoaderCircle class="w-4 inline -mt-0.5 animate-spin" />}
             >
-                <Show
-                    when={!frameworkInfo.loading}
-                    fallback={<LoaderCircle class="w-4 inline -mt-0.5 animate-spin" />}
-                >
-                    <Code class="w-4 inline -mt-0.5 mr-1.5" />
-                    {frameworkInfo()!.framework_name} {frameworkInfo()!.framework_version}
+                <Show when={frameworkInfo()} keyed>
+                    {info => (
+                        <>
+                            {info.framework_name}
+                            {info.framework_version ? ` ${info.framework_version}` : ''}
+                            <span class="opacity-50 mx-1.5">·</span>
+                            PHP {info.php_version}
+                        </>
+                    )}
                 </Show>
-            </div>
-            <div
-                class="py-2 px-4 w-min text-center whitespace-nowrap select-none"
-                style={{ 'background-color': generalStore.themeInfo.colors.background }}
-            >
-                <Show when={!frameworkInfo.loading}>
-                    <span class="align-middle inline-flex mt-0.5">
-                        PHP {frameworkInfo()!.php_version}
-                    </span>
-                </Show>
-            </div>
-        </>
+            </Show>
+        </div>
     );
 };
 

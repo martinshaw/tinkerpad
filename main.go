@@ -6,6 +6,7 @@ import (
 	"fmt"
 	golog "log"
 	"time"
+	"tinkerpad/backend/appmenu"
 	"tinkerpad/backend/dialog"
 	"tinkerpad/backend/docker"
 	"tinkerpad/backend/favorites"
@@ -13,6 +14,7 @@ import (
 	"tinkerpad/backend/languageserver"
 	"tinkerpad/backend/logger"
 	"tinkerpad/backend/php"
+	"tinkerpad/backend/projects"
 	"tinkerpad/backend/settings"
 	"tinkerpad/backend/ssh"
 	"tinkerpad/backend/storage"
@@ -51,6 +53,7 @@ func main() {
 	php := php.New()
 	d := dialog.New()
 	f := favorites.New()
+	p := projects.New()
 	h := history.New()
 	sh := ssh.New()
 	dk := docker.New()
@@ -73,12 +76,13 @@ func main() {
 		Frameless:         false,
 		StartHidden:       false,
 		HideWindowOnClose: true,
-		BackgroundColour:  &options.RGBA{R: 255, G: 255, B: 255, A: 255},
+		BackgroundColour:  store.StartupBackgroundColour(stg),
 		Assets:            assets,
-		Menu:              nil,
+		Menu:              appmenu.Build(),
 		Logger:            wlogger.NewFileLogger(logFile),
 		LogLevel:          wlogger.DEBUG,
 		OnStartup: func(ctx context.Context) {
+			appmenu.Bind(ctx)
 			log.Boot(ctx)
 			sg.Boot(log, stg)
 			d.Boot(ctx, log, sg)
@@ -88,6 +92,7 @@ func main() {
 			dk.Boot(log, stg, sg)
 			php.Boot(log, stg, sg, sh, dk)
 			f.Boot(log, stg)
+			p.Boot(log, stg)
 			h.Boot(log, stg)
 			u.Boot(ctx, sg, log)
 
@@ -105,6 +110,7 @@ func main() {
 			}()
 		},
 		OnShutdown: func(ctx context.Context) {
+			php.Close()
 			for _, conn := range sh.Conns {
 				conn.Client.Close()
 			}
@@ -117,6 +123,7 @@ func main() {
 			php,
 			d,
 			f,
+			p,
 			h,
 			sh,
 			dk,
@@ -127,20 +134,15 @@ func main() {
 			ssh.AuthMethods,
 		},
 		Mac: &mac.Options{
-			TitleBar: &mac.TitleBar{
-				TitlebarAppearsTransparent: true,
-				HideTitle:                  true,
-				HideTitleBar:               false,
-				FullSizeContent:            false,
-				UseToolbar:                 true,
-				HideToolbarSeparator:       true,
-			},
+			// Standard traffic lights (not the inset/toolbar variant).
+			TitleBar:             mac.TitleBarHidden(),
 			Appearance:           mac.DefaultAppearance,
-			WebviewIsTransparent: true,
-			WindowIsTranslucent:  true,
+			WebviewIsTransparent: false,
+			WindowIsTranslucent:  false,
+			// Dock / Finder icon asset; interactive About is Help → About Tinkerpad.
 			About: &mac.AboutInfo{
 				Title:   "Tinkerpad",
-				Message: "",
+				Message: "A desktop PHP playground for local, SSH, and Docker workspaces.\n\nHelp → About Tinkerpad for updates and links.",
 				Icon:    icon,
 			},
 		},

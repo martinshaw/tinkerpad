@@ -1,0 +1,39 @@
+---
+description: Force-quit, rebuild, and reopen Tinkerpad when finishing code work
+alwaysApply: true
+---
+
+# Relaunch after work
+
+When a coding task that changes the running app is **done** (not mid-exploration, not answer-only), always relaunch so the user sees the result:
+
+1. **Force-quit** any running app (ignore errors if not running):
+
+```bash
+killall -9 Tinkerpad 2>/dev/null || true
+# belt-and-suspenders for stuck helpers / old binaries
+pkill -9 -f '/Tinkerpad\.app/' 2>/dev/null || true
+```
+
+2. **Rebuild** from the repo root (pick the lightest sufficient path):
+
+| Touched | Rebuild |
+| --- | --- |
+| `php/**` only | `make phar && make build-fast` |
+| Go / Wails bindings / `main.go` / `backend/**` | `make generate` if exports changed, then `make build-fast` |
+| `frontend/**` or unsure | `make build-fast` (runs Vite when `frontend/dist` is stale) |
+| Large / release-shaped change | `make build` |
+
+3. **Open** the macOS build:
+
+```bash
+open build/bin/Tinkerpad.app
+```
+
+4. Tell the user the app was relaunched. Do **not** skip this after PHAR, UI, or Go changes just because a prior `bun run build` succeeded.
+
+## Do not
+
+- Use `make dev` for this loop (leaves a long-lived process).
+- Hand-copy into `~/Library/Application Support/Tinkerpad/` instead of rebuilding — the app extracts embedded resources on launch.
+- Relaunch after pure docs/rules/README edits with no runtime impact.

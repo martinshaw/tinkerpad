@@ -3,9 +3,11 @@ import * as monaco from 'monaco-editor';
 import { Tab } from '../../stores/code';
 import { createEditor } from '../../utils/editor/create';
 import { useGeneralStore } from '../../stores/general';
+import { useSettingsStore } from '../../stores/settings';
 
 const Result: Component<{ tab: Tab }> = props => {
     const [generalStore] = useGeneralStore();
+    const [settingsStore] = useSettingsStore();
     let editor: monaco.editor.IStandaloneCodeEditor;
     let container!: HTMLDivElement;
 
@@ -16,7 +18,16 @@ const Result: Component<{ tab: Tab }> = props => {
         editor = createEditor(container, file, props.tab, true);
     });
 
-    createEffect(() => editor.setValue(props.tab.result!.outputs.map(v => v.raw).join('\n')));
+    createEffect(() => {
+        const fontSize = settingsStore.app.editor.fontSize;
+        const fontFamily = settingsStore.app.editor.fontFamily;
+        const lineHeight = settingsStore.app.editor.lineHeight;
+        editor?.updateOptions({ fontSize, fontFamily, lineHeight });
+    });
+
+    createEffect(() =>
+        editor?.setValue((props.tab.result?.outputs ?? []).map(value => value.raw).join('\n')),
+    );
 
     onCleanup(async () => editor?.dispose());
 

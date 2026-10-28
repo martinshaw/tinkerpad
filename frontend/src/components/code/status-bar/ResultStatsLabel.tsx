@@ -23,22 +23,22 @@ const ResultStatsLabel: Component<{ tab: Tab }> = props => {
                     <>
                         <div
                             id="run-time"
-                            class="py-2 px-3 w-min text-center whitespace-nowrap select-none"
+                            class="h-full px-3 flex items-center whitespace-nowrap select-none"
                             style={{
                                 'background-color': generalStore.themeInfo.colors.background,
                             }}
                         >
-                            <Timer class="w-4 inline-flex -mt-0.5 mr-1.5" />
+                            <Timer class="w-4 mr-1.5" />
                             <span>{(res.time * 1000).toFixed(3)} ms</span>
                         </div>
                         <div
                             id="memory-usage"
-                            class="py-2 px-3 w-min text-center whitespace-nowrap select-none"
+                            class="h-full px-3 flex items-center whitespace-nowrap select-none"
                             style={{
                                 'background-color': generalStore.themeInfo.colors.background,
                             }}
                         >
-                            <Cpu class="w-4 inline -mt-0.5 mr-1.5" />
+                            <Cpu class="w-4 mr-1.5" />
                             {(res.peakMemoryUsage / 1024 / 1024).toFixed(2)} MB
                         </div>
                     </>
