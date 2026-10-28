@@ -1,22 +1,14 @@
-<div align="center">
-<a href="https://github.com/martinshaw/tinkerpad/"><img src="assets/logo.png" width="160" alt="Tinkerpad"/></a>
-</div>
-<h1 style="margin-top: 0px;" align="center">Tinkerpad</h1>
-<div align="center">
+![Tinkerpad](assets/logo.png)
 
-[![License](https://img.shields.io/github/license/martinshaw/tinkerpad)](https://github.com/martinshaw/tinkerpad/blob/main/LICENSE)
-[![GitHub release](https://img.shields.io/github/release/martinshaw/tinkerpad)](https://github.com/martinshaw/tinkerpad/releases)
+# Tinkerpad
+
+![License](https://img.shields.io/github/license/martinshaw/tinkerpad)
+![GitHub release](https://img.shields.io/github/release/martinshaw/tinkerpad)
 ![GitHub All Releases](https://img.shields.io/github/downloads/martinshaw/tinkerpad/total)
-[![GitHub stars](https://img.shields.io/github/stars/martinshaw/tinkerpad)](https://github.com/martinshaw/tinkerpad/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/martinshaw/tinkerpad)](https://github.com/martinshaw/tinkerpad/fork)
+![GitHub stars](https://img.shields.io/github/stars/martinshaw/tinkerpad)
+![GitHub forks](https://img.shields.io/github/forks/martinshaw/tinkerpad)
 
-<strong>A fast desktop PHP playground for local, SSH, and Docker workspaces.</strong>
-
-</div>
-
-<picture>
- <img alt="screenshot" src="screenshots/showcase-1.png">
-</picture>
+**A fast desktop PHP playground for local, SSH, and Docker workspaces.**
 
 ## Get started
 
@@ -76,7 +68,7 @@ That’s it — open more tabs, pin the ones you keep, or drag a tab to a pane e
 * **Tree** — Symfony VarDumper cards with copy/export actions.
 * **Raw**, **JSON**, **Table**, and **SQL/query** views.
 * **Compare** previous vs current raw output.
-* Captured **`Log::`** messages show level colors in Tree / JSON / Table.
+* Captured `Log::` messages show level colors in Tree / JSON / Table.
 
 ### UI & settings
 
@@ -167,7 +159,7 @@ make phar
 sudo xattr -d com.apple.quarantine /Applications/Tinkerpad.app
 ```
 
-**`pattern frontend/dist: no matching files found`** — run `make frontend` once before embedding/`go build`.
+`pattern frontend/dist: no matching files found` — run `make frontend` once before embedding/`go build`.
 
 **Local PHP snippets fail** — set a PHP binary in Settings, or use Docker / SSH.
 
