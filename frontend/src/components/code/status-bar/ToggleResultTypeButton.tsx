@@ -3,6 +3,7 @@ import { useGeneralStore } from '../../../stores/general';
 import { OutputType, useCodeStore } from '../../../stores/code';
 import FileJson from '../../icons/FileJson';
 import FileBox from '../../icons/FileBox';
+import Database from '../../icons/Database';
 import { createTooltip } from '../../../utils/tooltip/create';
 
 const ToggleResultTypeButton: Component = () => {
@@ -18,13 +19,17 @@ const ToggleResultTypeButton: Component = () => {
     return (
         <div
             id="toggle-result-type-button"
-            on:click={() =>
-                codeStore.setOutputType(
-                    codeStore.outputType === OutputType.Raw
-                        ? OutputType.Structured
-                        : OutputType.Raw,
-                )
-            }
+            on:click={() => {
+                const order = [
+                    OutputType.Structured,
+                    OutputType.Raw,
+                    OutputType.Json,
+                    OutputType.Table,
+                    OutputType.Queries,
+                ];
+                const index = order.indexOf(codeStore.outputType);
+                codeStore.setOutputType(order[(index + 1) % order.length]);
+            }}
             class="py-2 px-4 w-min text-center whitespace-nowrap hover:brightness-110 select-none"
             style={{ 'background-color': generalStore.themeInfo.colors.background }}
         >
@@ -34,6 +39,15 @@ const ToggleResultTypeButton: Component = () => {
                 </Match>
                 <Match when={codeStore.outputType === OutputType.Structured}>
                     <FileBox class="w-4 inline -mt-0.5" />
+                </Match>
+                <Match when={codeStore.outputType === OutputType.Json}>
+                    <FileJson class="w-4 inline -mt-0.5" />
+                </Match>
+                <Match when={codeStore.outputType === OutputType.Table}>
+                    <FileBox class="w-4 inline -mt-0.5" />
+                </Match>
+                <Match when={codeStore.outputType === OutputType.Queries}>
+                    <Database class="w-4 inline -mt-0.5" />
                 </Match>
             </Switch>
         </div>

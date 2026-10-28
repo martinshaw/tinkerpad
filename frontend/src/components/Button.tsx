@@ -9,10 +9,7 @@ const Button: Component<
     return (
         <button
             {...props}
-            class={
-                props.class +
-                ' rounded-md w-min px-4 py-1.5 border cursor-default hover:brightness-105 disabled:opacity-50 disabled:border-0 disabled:hover:brightness-100'
-            }
+            class={`rounded-md w-min px-4 py-1.5 border cursor-default hover:brightness-105 disabled:opacity-50 disabled:border-0 disabled:hover:brightness-100 ${props.class || ''}`}
             style={{
                 'background-color': generalStore.themeInfo.colors.background,
                 'border-color': generalStore.themeInfo.colors.secondary,

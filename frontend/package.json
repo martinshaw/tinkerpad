@@ -1,7 +1,7 @@
 {
     "name": "tinkerpad",
-    "version": "0.0.0",
-    "description": "",
+    "version": "1.0.0",
+    "description": "Desktop PHP playground for local, SSH, and Docker workspaces",
     "scripts": {
         "start": "vite",
         "dev": "vite",
@@ -31,5 +31,5 @@
         "vscode-languageclient": "^9.0.1",
         "vscode-ws-jsonrpc": "^3.4.0"
     },
-    "author": ""
+    "author": "Martin Shaw <hello@martinshaw.co>"
 }

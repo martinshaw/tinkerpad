@@ -5,10 +5,12 @@ import { MonacoLanguageClient } from 'monaco-languageclient';
 import { createEditor } from '../../utils/editor/create';
 import { Tab, useCodeStore } from '../../stores/code';
 import { useGeneralStore } from '../../stores/general';
+import { useSettingsStore } from '../../stores/settings';
 
 const Editor: Component<{ tab: Tab }> = props => {
     const [generalStore] = useGeneralStore();
     const [codeStore] = useCodeStore();
+    const [settingsStore] = useSettingsStore();
     let languageClient: MonacoLanguageClient;
     let editor: monaco.editor.IStandaloneCodeEditor;
     let container!: HTMLDivElement;
@@ -20,6 +22,13 @@ const Editor: Component<{ tab: Tab }> = props => {
         editor = createEditor(container, file, props.tab);
 
         languageClient = await createLanguageClient(dir);
+    });
+
+    createEffect(() => {
+        const fontSize = settingsStore.app.editor.fontSize;
+        const fontFamily = settingsStore.app.editor.fontFamily;
+        const lineHeight = settingsStore.app.editor.lineHeight;
+        editor?.updateOptions({ fontSize, fontFamily, lineHeight });
     });
 
     createEffect(async () => {

@@ -1,0 +1,293 @@
+name: Release
+
+on:
+    push:
+        tags:
+            - 'v*'
+    workflow_dispatch:
+        inputs:
+            version:
+                description: 'Version (with or without v prefix), e.g. 1.2.3'
+                required: true
+                default: '1.0.0'
+
+permissions:
+    contents: write
+
+env:
+    WAILS_VERSION: v2.9.3
+    BUN_VERSION: '1.1.38'
+
+jobs:
+    meta:
+        name: Resolve version
+        runs-on: ubuntu-latest
+        outputs:
+            version: ${{ steps.ver.outputs.version }}
+            tag: ${{ steps.ver.outputs.tag }}
+        steps:
+            - id: ver
+              shell: bash
+              run: |
+                  raw="${{ github.event.inputs.version || github.ref_name }}"
+                  raw="${raw#v}"
+                  echo "version=$raw" >> "$GITHUB_OUTPUT"
+                  echo "tag=v$raw" >> "$GITHUB_OUTPUT"
+
+    build-macos:
+        name: macOS universal
+        needs: meta
+        runs-on: macos-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-go@v5
+              with:
+                  go-version: stable
+
+            - name: Install Wails
+              run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
+
+            - uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: ${{ env.BUN_VERSION }}
+
+            - name: Stamp version
+              run: |
+                  jq --arg v "${{ needs.meta.outputs.version }}" '(.info //= {}) | .info.productVersion = $v' wails.json > tmp.json && mv tmp.json wails.json
+                  jq --arg v "${{ needs.meta.outputs.version }}" '.version = $v' frontend/package.json > tmp.json && mv tmp.json frontend/package.json
+
+            - name: Build
+              env:
+                  CGO_ENABLED: '1'
+              run: |
+                  SECRET="${{ secrets.TINKERPAD_SECRET }}"
+                  wails build -platform darwin/universal \
+                    -ldflags "-X main.version=${{ needs.meta.outputs.tag }} -X tinkerpad/backend/updater.releaseRepo=martinshaw/tinkerpad -X tinkerpad/backend/encrypt.secret=${SECRET}"
+
+            - name: Create DMG
+              working-directory: ./build
+              run: |
+                  git clone --depth 1 https://github.com/create-dmg/create-dmg.git create-dmg
+                  ./create-dmg/create-dmg \
+                    --no-internet-enable \
+                    --volname "Tinkerpad" \
+                    --volicon "bin/Tinkerpad.app/Contents/Resources/iconfile.icns" \
+                    --background "background.tiff" \
+                    --text-size 12 \
+                    --window-pos 400 400 \
+                    --window-size 660 450 \
+                    --icon-size 80 \
+                    --icon "Tinkerpad.app" 180 180 \
+                    --hide-extension "Tinkerpad.app" \
+                    --app-drop-link 480 180 \
+                    "bin/Tinkerpad_${{ needs.meta.outputs.version }}_darwin_universal.dmg" \
+                    "bin"
+
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: macos-dmg
+                  path: build/bin/Tinkerpad_${{ needs.meta.outputs.version }}_darwin_universal.dmg
+
+    build-linux:
+        name: Linux ${{ matrix.arch }}
+        needs: meta
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - arch: amd64
+                      platform: linux/amd64
+                      runs-on: ubuntu-22.04
+                      appimage_tool: https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20240109-1/linuxdeploy-x86_64.AppImage
+                      apprun: https://github.com/AppImage/AppImageKit/releases/download/continuous/AppRun-x86_64
+                      appimage_out: Tinkerpad-x86_64.AppImage
+                    - arch: arm64
+                      platform: linux/arm64
+                      runs-on: ubuntu-22.04-arm
+                      appimage_tool: https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20240109-1/linuxdeploy-aarch64.AppImage
+                      apprun: https://github.com/AppImage/AppImageKit/releases/download/continuous/AppRun-aarch64
+                      appimage_out: Tinkerpad-aarch64.AppImage
+        runs-on: ${{ matrix.runs-on }}
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-go@v5
+              with:
+                  go-version: stable
+
+            - name: Install Wails
+              run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
+
+            - name: Install Ubuntu prerequisites
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y build-essential libgtk-3-dev libwebkit2gtk-4.0-dev libfuse-dev libfuse2
+
+            - uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: ${{ env.BUN_VERSION }}
+
+            - name: Stamp version
+              run: |
+                  jq --arg v "${{ needs.meta.outputs.version }}" '(.info //= {}) | .info.productVersion = $v' wails.json > tmp.json && mv tmp.json wails.json
+                  jq --arg v "${{ needs.meta.outputs.version }}" '.version = $v' frontend/package.json > tmp.json && mv tmp.json frontend/package.json
+
+            - name: Build
+              env:
+                  CGO_ENABLED: '1'
+              run: |
+                  SECRET="${{ secrets.TINKERPAD_SECRET }}"
+                  wails build -platform ${{ matrix.platform }} \
+                    -ldflags "-X main.version=${{ needs.meta.outputs.tag }} -X tinkerpad/backend/updater.releaseRepo=martinshaw/tinkerpad -X tinkerpad/backend/encrypt.secret=${SECRET}" \
+                    -o tinkerpad
+
+            - name: Package .deb
+              run: |
+                  VERSION="${{ needs.meta.outputs.version }}"
+                  ARCH="${{ matrix.arch }}"
+                  PKG="tinkerpad_${VERSION}_linux_${ARCH}"
+
+                  content=$(cat build/linux/DEBIAN/control)
+                  content=$(echo "$content" | sed -e "s/{{.Name}}/$(jq -r '.name' wails.json)/g")
+                  content=$(echo "$content" | sed -e "s/{{.Info.ProductVersion}}/${VERSION}/g")
+                  content=$(echo "$content" | sed -e "s/{{.Info.Arch}}/${ARCH}/g")
+                  content=$(echo "$content" | sed -e "s/{{.Author.Name}}/$(jq -r '.author.name' wails.json)/g")
+                  content=$(echo "$content" | sed -e "s/{{.Author.Email}}/$(jq -r '.author.email' wails.json)/g")
+                  echo "$content" > build/linux/DEBIAN/control
+
+                  desk=$(cat build/linux/usr/share/applications/tinkerpad.desktop)
+                  desk=$(echo "$desk" | sed -e "s/{{.Info.ProductName}}/$(jq -r '.name' wails.json)/g")
+                  echo "$desk" > build/linux/usr/share/applications/tinkerpad.desktop
+
+                  mkdir -p build/linux/usr/local/bin/
+                  mv build/bin/tinkerpad build/linux/usr/local/bin/
+                  cd build
+                  mv linux "$PKG"
+                  sed -i "s/0.0.0/${VERSION}/g" "$PKG/DEBIAN/control"
+                  dpkg-deb --build -Zxz "$PKG"
+                  echo "DEB_PATH=build/${PKG}.deb" >> "$GITHUB_ENV"
+                  echo "PKG_DIR=build/${PKG}" >> "$GITHUB_ENV"
+
+            - name: Package AppImage
+              run: |
+                  VERSION="${{ needs.meta.outputs.version }}"
+                  ARCH="${{ matrix.arch }}"
+                  build_dir="${{ env.PKG_DIR }}"
+
+                  curl -L "${{ matrix.appimage_tool }}" -o linuxdeploy
+                  chmod u+x linuxdeploy
+                  ./linuxdeploy --appdir AppDir
+
+                  pushd AppDir
+                  find /usr/lib* -name WebKitNetworkProcess -exec mkdir -p "$(dirname '{}')" \; -exec cp --parents '{}' "." \; || true
+                  find /usr/lib* -name WebKitWebProcess -exec mkdir -p "$(dirname '{}')" \; -exec cp --parents '{}' "." \; || true
+                  find /usr/lib* -name libwebkit2gtkinjectedbundle.so -exec mkdir -p "$(dirname '{}')" \; -exec cp --parents '{}' "." \; || true
+                  popd
+
+                  mkdir -p AppDir/usr/share/icons/hicolor/512x512/apps AppDir/usr/bin
+                  cp -r "$build_dir/usr/share/icons/hicolor/512x512/apps/tinkerpad.png" AppDir/usr/share/icons/hicolor/512x512/apps/
+                  cp "$build_dir/usr/local/bin/tinkerpad" AppDir/usr/bin/
+                  sed -i 's#/usr/local/bin/tinkerpad#tinkerpad#g' "$build_dir/usr/share/applications/tinkerpad.desktop"
+
+                  curl -o linuxdeploy-plugin-gtk.sh "https://raw.githubusercontent.com/tauri-apps/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh"
+                  sed -i '/XDG_DATA_DIRS/a export WEBKIT_DISABLE_COMPOSITING_MODE=1' linuxdeploy-plugin-gtk.sh
+                  chmod +x linuxdeploy-plugin-gtk.sh
+
+                  curl -L -o AppDir/AppRun "${{ matrix.apprun }}"
+                  chmod +x AppDir/AppRun
+
+                  ./linuxdeploy --appdir AppDir \
+                    --output=appimage \
+                    --plugin=gtk \
+                    -e "$build_dir/usr/local/bin/tinkerpad" \
+                    -d "$build_dir/usr/share/applications/tinkerpad.desktop"
+
+                  mv "${{ matrix.appimage_out }}" "Tinkerpad_${VERSION}_linux_${ARCH}.AppImage"
+                  echo "APPIMAGE_PATH=Tinkerpad_${VERSION}_linux_${ARCH}.AppImage" >> "$GITHUB_ENV"
+
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: linux-${{ matrix.arch }}
+                  path: |
+                      ${{ env.DEB_PATH }}
+                      ${{ env.APPIMAGE_PATH }}
+
+    build-windows:
+        name: Windows amd64
+        needs: meta
+        runs-on: windows-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-go@v5
+              with:
+                  go-version: stable
+
+            - name: Install Wails
+              shell: bash
+              run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
+
+            - uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: ${{ env.BUN_VERSION }}
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+
+            - name: Stamp version
+              shell: bash
+              run: |
+                  node -e "const fs=require('fs'); const v=process.env.V; for (const f of ['wails.json','frontend/package.json']) { const j=JSON.parse(fs.readFileSync(f,'utf8')); if (f.startsWith('wails')) { j.info=j.info||{}; j.info.productVersion=v; } else { j.version=v; } fs.writeFileSync(f, JSON.stringify(j,null,2)+'\n'); }"
+              env:
+                  V: ${{ needs.meta.outputs.version }}
+
+            - name: Build
+              shell: bash
+              env:
+                  CGO_ENABLED: '1'
+              run: |
+                  SECRET="${{ secrets.TINKERPAD_SECRET }}"
+                  wails build -platform windows/amd64 \
+                    -ldflags "-X main.version=${{ needs.meta.outputs.tag }} -X tinkerpad/backend/updater.releaseRepo=martinshaw/tinkerpad -X tinkerpad/backend/encrypt.secret=${SECRET}"
+
+            - name: Zip
+              shell: pwsh
+              run: |
+                  $version = "${{ needs.meta.outputs.version }}"
+                  Get-ChildItem build/bin
+                  Compress-Archive -Path "build/bin/Tinkerpad.exe" -DestinationPath "build/bin/Tinkerpad_${version}_windows_amd64.zip" -Force
+
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: windows-amd64
+                  path: build/bin/Tinkerpad_${{ needs.meta.outputs.version }}_windows_amd64.zip
+
+    publish:
+        name: Publish GitHub Release
+        needs: [meta, build-macos, build-linux, build-windows]
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/download-artifact@v4
+              with:
+                  path: dist
+
+            - name: List artifacts
+              run: find dist -type f | sort
+
+            - name: Flatten artifacts
+              run: |
+                  mkdir -p release
+                  find dist -type f \( -name '*.dmg' -o -name '*.deb' -o -name '*.AppImage' -o -name '*.zip' \) -exec cp {} release/ \;
+                  ls -la release
+
+            - uses: softprops/action-gh-release@v2
+              with:
+                  tag_name: ${{ needs.meta.outputs.tag }}
+                  name: Tinkerpad ${{ needs.meta.outputs.tag }}
+                  generate_release_notes: true
+                  files: release/*
+                  fail_on_unmatched_files: true
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

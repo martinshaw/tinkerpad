@@ -1,20 +1,30 @@
 import { Component, createResource, createSignal, For, Show } from 'solid-js';
-import { Screen, useGeneralStore } from '../../stores/general';
+import { useGeneralStore } from '../../stores/general';
 import Star from './../icons/Star';
 import Plus from './../icons/Plus';
-import { GetAll, Save } from '../../../wailsjs/go/favorites/Favorites';
+import {
+    GetAll,
+    Save,
+    Import,
+    Export,
+    AddLaravelStarters,
+} from '../../../wailsjs/go/favorites/Favorites';
+import { OpenJsonFile, SaveJsonFile, Error as ShowError } from '../../../wailsjs/go/dialog/Dialog';
 import { favorites } from '../../../wailsjs/go/models';
 import Create from './Create';
 import View from './View';
 import Trash from '../icons/Trash';
 import { Confirm } from '../../../wailsjs/go/dialog/Dialog';
-import XMark from '../icons/XMark';
+import SideShell, { SideNavButton } from '../macos/SideShell';
+import { PrefButton, PrefSelect, PrefTextField } from '../macos/PrefControl';
 
 const Favorites: Component = () => {
     const [selectedFavorite, setSelectedFavorite] = createSignal<favorites.Favorite | undefined>(
         undefined,
     );
     const [selectedProject, setSelectedProject] = createSignal('');
+    const [selectedFolder, setSelectedFolder] = createSignal('');
+    const [search, setSearch] = createSignal('');
     const [favorites, { mutate, refetch }] = createResource(async () => await GetAll());
     const [generalStore] = useGeneralStore();
 
@@ -34,103 +44,178 @@ const Favorites: Component = () => {
         }
     };
 
-    return (
-        <div
-            class="flex grow px-20 py-6 text-sm border-y cursor-default select-none max-h-full"
-            style={{
-                'background-color': generalStore.themeInfo.colors.background,
-                color: generalStore.themeInfo.colors.primary,
-                'border-color': generalStore.themeInfo.colors.secondary,
-            }}
-        >
-            <div
-                class="flex relative flex-col gap-2 border-r px-7 min-w-[30%] max-w-[30%]"
-                style={{ 'border-color': generalStore.themeInfo.colors.secondary }}
-            >
-                <XMark
-                    class="w-5 h-5 absolute top-[0.3rem] left-[-1.5rem] cursor-pointer hover:brightness-105"
-                    on:click={() => generalStore.setCurrentScreen(Screen.Code)}
-                />
-                <h1 class="text-lg mb-5 font-semibold drop-shadow">
-                    <Star class="h-5 w-5 inline mr-1.5 -mt-0.5 transition-all duration-75" />
-                    Favorites
-                </h1>
+    const visible = () => {
+        const query = search().trim().toLowerCase();
+        return (favorites() ?? []).filter(favorite => {
+            if (selectedProject() && favorite.workingDir !== selectedProject()) {
+                return false;
+            }
+            if (selectedFolder() && (favorite.folder || '') !== selectedFolder()) {
+                return false;
+            }
+            if (!query) {
+                return true;
+            }
+            const tags = (favorite.tags ?? []).join(' ');
+            return [favorite.name, favorite.description, favorite.code, favorite.folder, tags]
+                .join('\n')
+                .toLowerCase()
+                .includes(query);
+        });
+    };
 
-                <div
-                    on:click={() => setSelectedFavorite(undefined)}
-                    classList={{
-                        'font-bold brightness-105 -ml-1': selectedFavorite() === undefined,
-                        'hover:brightness-125': selectedFavorite() !== undefined,
-                    }}
-                >
-                    <Plus class="w-4 mr-1 -mt-0.5 inline" />
-                    Add favorite
-                </div>
-                <hr
-                    class="my-2 -mx-3"
-                    style={{ 'border-color': generalStore.themeInfo.colors.secondary }}
-                />
-                <Show when={favorites()?.length}>
-                    <select
-                        on:input={e => setSelectedProject(e.currentTarget.value)}
-                        class="rounded-lg px-2 py-1.5 w-full h-7 bg-transparent mb-2"
+    const folders = () => [...new Set((favorites() ?? []).map(favorite => favorite.folder || ''))];
+    const tags = () => [...new Set((favorites() ?? []).flatMap(favorite => favorite.tags ?? []))];
+
+    const importSnippets = async () => {
+        const path = await OpenJsonFile();
+        if (!path) {
+            return;
+        }
+        try {
+            await Import(path);
+            await refetch();
+        } catch (error) {
+            await ShowError(error instanceof Error ? error.message : String(error));
+        }
+    };
+
+    const exportSnippets = async () => {
+        const path = await SaveJsonFile('tinkerpad-snippets.json');
+        if (!path) {
+            return;
+        }
+        try {
+            await Export(path);
+        } catch (error) {
+            await ShowError(error instanceof Error ? error.message : String(error));
+        }
+    };
+
+    const addStarters = async () => {
+        try {
+            await AddLaravelStarters();
+            await refetch();
+        } catch (error) {
+            await ShowError(error instanceof Error ? error.message : String(error));
+        }
+    };
+
+    const contentTitle = () => selectedFavorite()?.name || 'New favorite';
+
+    return (
+        <SideShell
+            title="Favorites"
+            titleIcon={<Star class="h-4 w-4" />}
+            contentTitle={contentTitle()}
+            sidebarWidth="15rem"
+            sidebar={
+                <>
+                    <div class="flex flex-col gap-1.5 px-0.5 mb-2">
+                        <PrefButton class="!w-full !max-w-none" on:click={importSnippets}>
+                            Import
+                        </PrefButton>
+                        <PrefButton class="!w-full !max-w-none" on:click={exportSnippets}>
+                            Export
+                        </PrefButton>
+                        <PrefButton class="!w-full !max-w-none" on:click={addStarters}>
+                            Laravel starters
+                        </PrefButton>
+                    </div>
+                    <div class="px-0.5 mb-2">
+                        <PrefTextField
+                            class="!max-w-none"
+                            placeholder="Search"
+                            value={search()}
+                            on:input={e => setSearch(e.currentTarget.value)}
+                        />
+                    </div>
+                    <SideNavButton
+                        active={selectedFavorite() === undefined}
+                        icon={<Plus class="w-3.5" />}
+                        onClick={() => setSelectedFavorite(undefined)}
                     >
-                        <option value="">All projects</option>
-                        <For each={[...new Set(favorites()?.map(p => p.workingDir))]}>
-                            {project => (
-                                <option selected={selectedProject() === project} value={project}>
-                                    {project}
-                                </option>
-                            )}
-                        </For>
-                    </select>
-                </Show>
-                <div class="flex flex-col max-h-[65%] overflow-y-auto soft-scrollbar">
-                    <For
-                        each={favorites()?.filter(f =>
-                            selectedProject() ? f.workingDir === selectedProject() : f,
-                        )}
-                        fallback={<div>No favorites added yet.</div>}
-                    >
-                        {favorite => (
-                            <div class="flex items-center justify-between gap-3 group min-h-7 w-full pr-2">
-                                <div
-                                    on:click={() => setSelectedFavorite(favorite)}
-                                    class="max-w-[80%] w-[80%] truncate"
-                                    classList={{
-                                        'font-bold brightness-105':
-                                            selectedFavorite()?.uuid === favorite.uuid,
-                                        'hover:brightness-125':
-                                            selectedFavorite()?.uuid !== favorite.uuid,
-                                    }}
-                                >
-                                    {favorite.name}
-                                </div>
-                                <span
-                                    on:click={async e => {
-                                        e.stopPropagation();
-                                        (await Confirm(
-                                            'Are you sure you want to delete this favorite?',
-                                        )) && deleteFavorite(favorite);
-                                    }}
-                                >
-                                    <Trash class="w-3.5 align-middle hidden group-hover:block hover:brightness-125" />
-                                </span>
+                        Add favorite
+                    </SideNavButton>
+                    <Show when={favorites()?.length}>
+                        <div class="flex flex-col gap-1.5 px-0.5 my-2">
+                            <PrefSelect
+                                class="!max-w-none"
+                                value={selectedProject()}
+                                on:input={e => setSelectedProject(e.currentTarget.value)}
+                            >
+                                <option value="">All projects</option>
+                                <For each={[...new Set(favorites()?.map(p => p.workingDir))]}>
+                                    {project => <option value={project}>{project}</option>}
+                                </For>
+                            </PrefSelect>
+                            <PrefSelect
+                                class="!max-w-none"
+                                value={selectedFolder()}
+                                on:input={e => setSelectedFolder(e.currentTarget.value)}
+                            >
+                                <option value="">All folders</option>
+                                <For each={folders().filter(Boolean)}>
+                                    {folder => <option value={folder}>{folder}</option>}
+                                </For>
+                            </PrefSelect>
+                        </div>
+                        <Show when={tags().length}>
+                            <div class="flex flex-wrap gap-1 px-1 mb-2">
+                                <For each={tags()}>
+                                    {tag => (
+                                        <button
+                                            type="button"
+                                            class="px-1.5 py-0.5 rounded text-[11px] hover:brightness-110"
+                                            style={{
+                                                'background-color':
+                                                    generalStore.themeInfo.colors.secondary,
+                                            }}
+                                            on:click={() => setSearch(tag)}
+                                        >
+                                            {tag}
+                                        </button>
+                                    )}
+                                </For>
                             </div>
+                        </Show>
+                    </Show>
+                    <For each={visible()} fallback={<div class="px-2.5 py-1.5 opacity-50">No favorites yet.</div>}>
+                        {favorite => (
+                            <SideNavButton
+                                active={selectedFavorite()?.uuid === favorite.uuid}
+                                title={favorite.name}
+                                onClick={() => setSelectedFavorite(favorite)}
+                                trailing={
+                                    <button
+                                        type="button"
+                                        class="p-0.5 rounded hover:brightness-125"
+                                        on:click={async e => {
+                                            e.stopPropagation();
+                                            (await Confirm(
+                                                'Are you sure you want to delete this favorite?',
+                                            )) && deleteFavorite(favorite);
+                                        }}
+                                    >
+                                        <Trash class="w-3.5" />
+                                    </button>
+                                }
+                            >
+                                {favorite.name}
+                            </SideNavButton>
                         )}
                     </For>
-                </div>
-            </div>
-            <div class="grow px-7">
-                <Show
-                    keyed
-                    when={selectedFavorite()}
-                    fallback={<Create saveFavorite={saveFavorite} />}
-                >
-                    {favorite => <View favorite={favorite} />}
-                </Show>
-            </div>
-        </div>
+                </>
+            }
+        >
+            <Show
+                keyed
+                when={selectedFavorite()}
+                fallback={<Create saveFavorite={saveFavorite} />}
+            >
+                {favorite => <View favorite={favorite} />}
+            </Show>
+        </SideShell>
     );
 };
 

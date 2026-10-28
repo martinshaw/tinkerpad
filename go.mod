@@ -2,8 +2,6 @@ module tinkerpad
 
 go 1.24.0
 
-// replace github.com/wailsapp/wails/v2 v2.9.2 => /Users/eduardopessine/.asdf/installs/golang/1.23.3/packages/pkg/mod
-
 require (
 	github.com/adrg/xdg v0.5.3
 	github.com/google/uuid v1.6.0

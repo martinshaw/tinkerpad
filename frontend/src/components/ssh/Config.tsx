@@ -10,18 +10,18 @@ import StatusBar from '../code/status-bar/StatusBar';
 import { Connect, GetAll, Save } from '../../../wailsjs/go/ssh/Ssh';
 import { ssh } from '../../../wailsjs/go/models';
 import Edit from './Edit';
-import Input from '../Input';
 import Ban from '../icons/Ban';
 import { v4 } from 'uuid';
-import XMark from '../icons/XMark';
+import SideShell, { SideNavButton } from '../macos/SideShell';
+import { PrefSelect, PrefTextField } from '../macos/PrefControl';
 
 const Config: Component = () => {
-    let groupNameInput!: HTMLInputElement;
-    let groupColorInput!: HTMLInputElement;
     const [selectedConfig, setSelectedConfig] = createSignal<ssh.SshConnectionConfig | undefined>(
         undefined,
     );
     const [creatingGroup, setCreatingGroup] = createSignal(false);
+    const [groupName, setGroupName] = createSignal('');
+    const [groupColor, setGroupColor] = createSignal('#5e81ac');
     const [selectedGroup, setSelectedGroup] = createSignal('');
     const [data, { mutate, refetch }] = createResource(async () => await GetAll());
     const [generalStore] = useGeneralStore();
@@ -97,183 +97,154 @@ const Config: Component = () => {
     };
 
     return (
-        <div class="flex flex-col grow">
-            <div
-                class="flex grow px-20 py-6 text-sm border-t cursor-default select-none max-h-full"
-                style={{
-                    'background-color': generalStore.themeInfo.colors.background,
-                    color: generalStore.themeInfo.colors.primary,
-                    'border-color': generalStore.themeInfo.colors.secondary,
-                    'max-height': `calc(100vh - ${generalStore.isLinux ? 2.5 : 4.8}rem)`,
-                }}
-            >
-                <div
-                    class="flex relative flex-col gap-2 border-r px-7 max-h-full min-w-[30%] max-w-[30%]"
-                    style={{ 'border-color': generalStore.themeInfo.colors.secondary }}
-                >
-                    <XMark
-                        class="w-5 h-5 absolute top-[0.3rem] left-[-1.5rem] cursor-pointer hover:brightness-105"
-                        on:click={() => generalStore.setCurrentScreen(Screen.Code)}
-                    />
-                    <h1 class="text-lg mb-5 font-semibold drop-shadow">
-                        <Server class="h-5 w-5 inline mr-1.5 -mt-0.5 transition-all duration-75" />
-                        SSH
-                    </h1>
-
-                    <div
-                        on:click={() => setSelectedConfig(undefined)}
-                        classList={{
-                            'font-bold brightness-105 -ml-1': selectedConfig() === undefined,
-                            'hover:brightness-125': selectedConfig() !== undefined,
-                        }}
-                    >
-                        <Plus class="w-4 mr-1 -mt-0.5 inline" />
-                        Add connection
-                    </div>
-                    <hr
-                        class="my-2 -mx-3"
-                        style={{ 'border-color': generalStore.themeInfo.colors.secondary }}
-                    />
-                    <div>
+        <div class="flex flex-col grow min-h-0">
+            <SideShell
+                title="SSH"
+                titleIcon={<Server class="h-4 w-4" />}
+                contentTitle={selectedConfig()?.name || 'New connection'}
+                sidebarWidth="15rem"
+                sidebar={
+                    <>
+                        <SideNavButton
+                            active={selectedConfig() === undefined}
+                            icon={<Plus class="w-3.5" />}
+                            onClick={() => setSelectedConfig(undefined)}
+                        >
+                            Add connection
+                        </SideNavButton>
                         <Show
                             when={creatingGroup()}
                             fallback={
-                                <div
-                                    on:click={() => setCreatingGroup(true)}
-                                    class="hover:brightness-125 py-1"
+                                <SideNavButton
+                                    icon={<Plus class="w-3.5" />}
+                                    onClick={() => setCreatingGroup(true)}
                                 >
-                                    <Plus class="w-4 mr-1 -mt-0.5 inline" />
                                     Add group
-                                </div>
+                                </SideNavButton>
                             }
                         >
-                            <div class="space-y-3">
-                                <div class="flex items-center gap-2">
-                                    <Input
+                            <div class="flex flex-col gap-1.5 px-0.5 my-1">
+                                <div class="flex items-center gap-1.5">
+                                    <PrefTextField
+                                        class="!max-w-[3rem]"
                                         type="color"
-                                        class="h-8"
-                                        ref={groupColorInput}
-                                        vertical
+                                        value={groupColor()}
+                                        on:input={e => setGroupColor(e.currentTarget.value)}
                                     />
-                                    <Input ref={groupNameInput} vertical />
+                                    <PrefTextField
+                                        class="!max-w-none"
+                                        placeholder="Group name"
+                                        value={groupName()}
+                                        on:input={e => setGroupName(e.currentTarget.value)}
+                                    />
                                 </div>
-                                <div class="flex gap-3 justify-end">
-                                    <SaveIcon
+                                <div class="flex gap-2 justify-end px-0.5">
+                                    <button
+                                        type="button"
+                                        class="p-1 rounded hover:brightness-110"
                                         on:click={() => {
-                                            groupNameInput.value &&
-                                                saveGroup(
-                                                    new ssh.SshConnectionConfigGroup({
-                                                        uuid: v4(),
-                                                        name: groupNameInput.value,
-                                                        color: groupColorInput.value,
-                                                    }),
-                                                );
+                                            if (!groupName()) {
+                                                return;
+                                            }
+                                            saveGroup(
+                                                new ssh.SshConnectionConfigGroup({
+                                                    uuid: v4(),
+                                                    name: groupName(),
+                                                    color: groupColor(),
+                                                }),
+                                            );
+                                            setGroupName('');
                                             setCreatingGroup(false);
                                         }}
-                                        class="w-5 hover:brightness-125"
-                                    />
-                                    <Ban
+                                    >
+                                        <SaveIcon class="w-4" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="p-1 rounded hover:brightness-110"
                                         on:click={() => setCreatingGroup(false)}
-                                        class="w-5 hover:brightness-125"
-                                    />
+                                    >
+                                        <Ban class="w-4" />
+                                    </button>
                                 </div>
                             </div>
                         </Show>
-                    </div>
-                    <hr
-                        class="my-2 -mx-3"
-                        style={{ 'border-color': generalStore.themeInfo.colors.secondary }}
-                    />
-                    <Show when={data()?.groups.length}>
-                        <div class="flex gap-3 items-center">
-                            <select
-                                on:input={e => setSelectedGroup(e.currentTarget.value)}
-                                class="rounded-lg px-2 py-1.5 w-full h-7 bg-transparent mb-2"
-                            >
-                                <option value="">All groups</option>
-                                <For each={data()?.groups}>
-                                    {group => (
-                                        <option
-                                            style={{ 'background-color': group.color }}
-                                            selected={selectedGroup() === group.uuid}
-                                            value={group.uuid}
-                                        >
-                                            {group.name}
-                                        </option>
-                                    )}
-                                </For>
-                            </select>
-                            <Show when={selectedGroup()}>
-                                <div class="flex gap-2 items-center -mt-2.5">
-                                    <div
-                                        class="h-5 aspect-square rounded-full mt-0.5 drop-shadow-md"
-                                        style={{
-                                            'background-color': data()?.groups.find(
-                                                g => g.uuid === selectedGroup(),
-                                            )?.color,
-                                        }}
-                                    ></div>
-                                    <Trash
-                                        on:click={async e => {
-                                            e.stopPropagation();
+                        <Show when={data()?.groups.length}>
+                            <div class="flex items-center gap-1.5 px-0.5 my-1">
+                                <PrefSelect
+                                    class="!max-w-none"
+                                    value={selectedGroup()}
+                                    on:input={e => setSelectedGroup(e.currentTarget.value)}
+                                >
+                                    <option value="">All groups</option>
+                                    <For each={data()?.groups}>
+                                        {group => (
+                                            <option value={group.uuid}>{group.name}</option>
+                                        )}
+                                    </For>
+                                </PrefSelect>
+                                <Show when={selectedGroup()}>
+                                    <button
+                                        type="button"
+                                        class="p-1 rounded hover:brightness-110 shrink-0"
+                                        on:click={async () => {
                                             (await Confirm(
                                                 "Are you sure you want to delete this group and ALL it's connections?",
                                             )) && deleteGroup(selectedGroup());
                                         }}
-                                        class="w-5 hover:brightness-125"
-                                    />
-                                </div>
-                            </Show>
-                        </div>
-                    </Show>
-                    <div class="flex flex-col max-h-[65%] overflow-y-auto soft-scrollbar">
+                                    >
+                                        <Trash class="w-3.5" />
+                                    </button>
+                                </Show>
+                            </div>
+                        </Show>
                         <For
                             each={data()?.configs.filter(c =>
-                                selectedGroup() ? c.groupUuid === selectedGroup() : c,
+                                selectedGroup() ? c.groupUuid === selectedGroup() : true,
                             )}
-                            fallback={<div>No SSH connections added yet.</div>}
+                            fallback={
+                                <div class="px-2.5 py-1.5 opacity-50">No SSH connections yet.</div>
+                            }
                         >
                             {config => (
-                                <div class="flex items-center justify-between gap-3 group min-h-7 w-full pr-2">
-                                    <div
-                                        on:click={() => setSelectedConfig(config)}
-                                        class="max-w-[80%] w-[80%] truncate"
-                                        classList={{
-                                            'font-bold brightness-105':
-                                                selectedConfig()?.uuid === config.uuid,
-                                            'hover:brightness-125':
-                                                selectedConfig()?.uuid !== config.uuid,
-                                        }}
-                                    >
-                                        {config.name}
+                                <SideNavButton
+                                    active={selectedConfig()?.uuid === config.uuid}
+                                    title={config.name}
+                                    onClick={() => setSelectedConfig(config)}
+                                    icon={
                                         <span
-                                            class="h-3 -mt-0.5 ml-2 align-middle aspect-square inline-block rounded-full drop-shadow-md"
+                                            class="w-2 h-2 rounded-full"
                                             style={{ 'background-color': config.color }}
-                                        ></span>
-                                    </div>
-                                    <span
-                                        on:click={async e => {
-                                            e.stopPropagation();
-                                            (await Confirm(
-                                                'Are you sure you want to delete this connection?',
-                                            )) && deleteConfig(config);
-                                        }}
-                                    >
-                                        <Trash class="w-3.5 align-middle hidden group-hover:block hover:brightness-125" />
-                                    </span>
-                                </div>
+                                        />
+                                    }
+                                    trailing={
+                                        <button
+                                            type="button"
+                                            class="p-0.5 rounded hover:brightness-125"
+                                            on:click={async e => {
+                                                e.stopPropagation();
+                                                (await Confirm(
+                                                    'Are you sure you want to delete this connection?',
+                                                )) && deleteConfig(config);
+                                            }}
+                                        >
+                                            <Trash class="w-3.5" />
+                                        </button>
+                                    }
+                                >
+                                    {config.name}
+                                </SideNavButton>
                             )}
                         </For>
-                    </div>
-                </div>
-                <div class="grow px-7 overflow-y-auto soft-scrollbar">
-                    <Edit
-                        config={selectedConfig()}
-                        saveConfig={saveConfig}
-                        groups={data()?.groups}
-                    />
-                </div>
-            </div>
+                    </>
+                }
+            >
+                <Edit
+                    config={selectedConfig()}
+                    saveConfig={saveConfig}
+                    groups={data()?.groups}
+                />
+            </SideShell>
             <Show when={codeStore.currentTab} keyed>
                 {tab => <StatusBar tab={tab} />}
             </Show>

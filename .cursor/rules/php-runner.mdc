@@ -1,0 +1,14 @@
+---
+description: PHP PHAR runner and session protocol
+globs: php/**/*.php,php/box.json,php/composer.json
+alwaysApply: false
+---
+
+# PHP runner
+
+- Entry: `php/index.php`. Logic: `php/src/Runner.php` (PsySH, Laravel boot, session ops).
+- Requires must use `__DIR__` so project `vendor/autoload.php` is never loaded by mistake.
+- Session protocol: argv `--session`, JSON lines on stdin (`op`: run/tables/columns/query/close), one JSON line out.
+- Code in requests is base64. Query log / DB ops only when Laravel is booted.
+- After edits: `make phar` (Box). Exclude Composer dev files from the PHAR.
+- Smoke-test with process cwd = a real Composer/Laravel app, not only the repo root.
