@@ -1,5 +1,3 @@
-![Tinkerpad](assets/logo.png)
-
 # Tinkerpad
 
 ![License](https://img.shields.io/github/license/martinshaw/tinkerpad)
