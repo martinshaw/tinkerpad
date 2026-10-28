@@ -12,7 +12,7 @@
   },
   "info": {
     "productName": "Tinkerpad",
-    "productVersion": "1.0.0",
+    "productVersion": "1.0.1",
     "companyName": "Martin Shaw",
     "comments": "A desktop PHP playground for local, SSH, and Docker workspaces."
   }

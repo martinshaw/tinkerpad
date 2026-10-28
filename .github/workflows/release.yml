@@ -9,7 +9,7 @@ on:
             version:
                 description: 'Version (with or without v prefix), e.g. 1.2.3'
                 required: true
-                default: '1.0.0'
+                default: '1.0.1'
 
 permissions:
     contents: write
@@ -17,6 +17,9 @@ permissions:
 env:
     WAILS_VERSION: v2.9.3
     BUN_VERSION: '1.1.38'
+    # Pin to go.mod — `stable` (e.g. 1.27) breaks Wails/CGO builds with
+    # "package … without types was imported" internal compiler errors.
+    GOTOOLCHAIN: local
 
 jobs:
     meta:
@@ -43,10 +46,12 @@ jobs:
 
             - uses: actions/setup-go@v5
               with:
-                  go-version: stable
+                  go-version-file: go.mod
 
             - name: Install Wails
-              run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
+              run: |
+                  go version
+                  go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
 
             - uses: oven-sh/setup-bun@v2
               with:
@@ -114,10 +119,12 @@ jobs:
 
             - uses: actions/setup-go@v5
               with:
-                  go-version: stable
+                  go-version-file: go.mod
 
             - name: Install Wails
-              run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
+              run: |
+                  go version
+                  go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
 
             - name: Install Ubuntu prerequisites
               run: |
@@ -222,11 +229,13 @@ jobs:
 
             - uses: actions/setup-go@v5
               with:
-                  go-version: stable
+                  go-version-file: go.mod
 
             - name: Install Wails
               shell: bash
-              run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
+              run: |
+                  go version
+                  go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
 
             - uses: oven-sh/setup-bun@v2
               with:
