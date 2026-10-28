@@ -1,7 +1,8 @@
 {
     "name": "tinkerpad",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "Desktop PHP playground for local, SSH, and Docker workspaces",
+    "packageManager": "bun@1.4.2",
     "scripts": {
         "start": "vite",
         "dev": "vite",
