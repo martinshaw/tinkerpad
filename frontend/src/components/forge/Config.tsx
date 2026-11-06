@@ -41,6 +41,7 @@ const Config: Component = () => {
         const site: ForgeSite = {
             profileUuid: saved.uuid,
             profileName: saved.name,
+            orgSlug: connectSite.orgSlug,
             serverId: connectSite.serverId,
             siteId: connectSite.siteId,
             serverName: connectSite.serverName,

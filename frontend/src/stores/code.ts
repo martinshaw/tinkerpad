@@ -932,6 +932,7 @@ const newCodeStore: CodeStore = {
                 await StopSession(current.id);
                 result = await RunForgeCode(
                     current.forgeSite.profileUuid,
+                    current.forgeSite.orgSlug,
                     current.forgeSite.serverId,
                     current.forgeSite.siteId,
                     code,
@@ -1221,6 +1222,7 @@ export interface SSHConnection {
 export interface ForgeSite {
     profileUuid: string;
     profileName: string;
+    orgSlug: string;
     serverId: number;
     siteId: number;
     serverName: string;

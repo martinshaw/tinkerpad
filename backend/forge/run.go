@@ -3,7 +3,6 @@ package forge
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 	"tinkerpad/backend/php"
@@ -15,7 +14,7 @@ const (
 	emptyTip     = "Forge returned no output. Run once more (Forge Commands often needs a second try), and make sure the script prints something with echo, dump(), or var_dump()."
 )
 
-func (f *Forge) RunCode(profileUUID string, serverID, siteID int, phpCode string) php.RunResult {
+func (f *Forge) RunCode(profileUUID, orgSlug string, serverID, siteID int, phpCode string) php.RunResult {
 	code := normalizePHP(phpCode)
 	if strings.TrimSpace(code) == "" {
 		return php.RunResult{
@@ -31,37 +30,35 @@ func (f *Forge) RunCode(profileUUID string, serverID, siteID int, phpCode string
 			ExitCode: -1,
 		}
 	}
-
-	command := buildTinkerCommand(code)
-	path := fmt.Sprintf("/servers/%d/sites/%d/commands", serverID, siteID)
-	raw, err := f.doRaw(profileUUID, http.MethodPost, path, map[string]string{"command": command})
-	if err != nil {
-		return php.RunResult{Ok: false, Error: err.Error(), ExitCode: -1}
-	}
-	cmdID := parseCommandID(raw)
-	if cmdID == 0 {
+	if strings.TrimSpace(orgSlug) == "" {
 		return php.RunResult{
 			Ok:       false,
-			Error:    "Forge did not return a command id",
+			Error:    "No Forge organization on this site — reconnect the site from Workspace → Forge",
 			ExitCode: -1,
 		}
+	}
+
+	command := buildTinkerCommand(code)
+	cmdID, err := f.createSiteCommand(profileUUID, orgSlug, serverID, siteID, command)
+	if err != nil {
+		return php.RunResult{Ok: false, Error: err.Error(), ExitCode: -1}
 	}
 
 	deadline := time.Now().Add(pollTimeout)
 	var lastStatus string
 	var output string
 	for {
-		var payload struct {
-			Command forgeCommand `json:"command"`
-			Output  string       `json:"output"`
-		}
-		getPath := fmt.Sprintf("/servers/%d/sites/%d/commands/%d", serverID, siteID, cmdID)
-		if err := f.do(profileUUID, http.MethodGet, getPath, nil, &payload); err != nil {
+		cmd, err := f.getSiteCommand(profileUUID, orgSlug, serverID, siteID, cmdID)
+		if err != nil {
 			return php.RunResult{Ok: false, Error: err.Error(), ExitCode: -1}
 		}
-		lastStatus = strings.ToLower(strings.TrimSpace(payload.Command.Status))
-		output = payload.Output
+		lastStatus = strings.ToLower(strings.TrimSpace(cmd.Status))
 		if isTerminalStatus(lastStatus) {
+			out, outErr := f.getSiteCommandOutput(profileUUID, orgSlug, serverID, siteID, cmdID)
+			if outErr != nil {
+				return php.RunResult{Ok: false, Error: outErr.Error(), ExitCode: -1}
+			}
+			output = out
 			break
 		}
 		if time.Now().After(deadline) {
@@ -102,7 +99,7 @@ func (f *Forge) RunCode(profileUUID string, serverID, siteID int, phpCode string
 
 func isTerminalStatus(status string) bool {
 	switch status {
-	case "finished", "failed", "error", "complete", "completed":
+	case "finished", "failed", "error", "complete", "completed", "succeeded", "success":
 		return true
 	default:
 		return false
