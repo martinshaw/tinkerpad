@@ -3,6 +3,7 @@ import { Component } from 'solid-js';
 const Square: Component<{ class: string }> = props => {
     return (
         <svg
+            {...props}
             xmlns="http://www.w3.org/2000/svg"
             width="24"
             height="24"
@@ -12,7 +13,6 @@ const Square: Component<{ class: string }> = props => {
             stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"
-            {...props}
         >
             <rect width="18" height="18" x="3" y="3" rx="2" />
         </svg>

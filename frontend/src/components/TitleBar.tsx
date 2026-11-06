@@ -34,12 +34,7 @@ const TitleBar: Component<{ showNewTab?: boolean }> = props => {
     const soleFileTab = () =>
         codeStore.tabs.length === 1 && Boolean(codeStore.currentTab?.filePath);
 
-    const titleText = () => {
-        if (soleFileTab()) {
-            return codeStore.currentTab.filePath || '';
-        }
-        return generalStore.isLinux ? '' : 'tinkerpad';
-    };
+    const titleText = () => (soleFileTab() ? codeStore.currentTab.filePath || '' : '');
 
     const showPlus = () => props.showNewTab || codeStore.tabs.length <= 1;
 

@@ -3,6 +3,7 @@ import { Component, JSX } from 'solid-js';
 const FileBox: Component<JSX.SvgSVGAttributes<SVGSVGElement>> = props => {
     return (
         <svg
+            {...props}
             xmlns="http://www.w3.org/2000/svg"
             width="24"
             height="24"
@@ -12,7 +13,6 @@ const FileBox: Component<JSX.SvgSVGAttributes<SVGSVGElement>> = props => {
             stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"
-            {...props}
         >
             <path d="M14.5 22H18a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4" />
             <path d="M14 2v4a2 2 0 0 0 2 2h4" />

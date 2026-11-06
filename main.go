@@ -10,6 +10,7 @@ import (
 	"tinkerpad/backend/dialog"
 	"tinkerpad/backend/docker"
 	"tinkerpad/backend/favorites"
+	"tinkerpad/backend/forge"
 	"tinkerpad/backend/history"
 	"tinkerpad/backend/languageserver"
 	"tinkerpad/backend/logger"
@@ -57,6 +58,7 @@ func main() {
 	h := history.New()
 	sh := ssh.New()
 	dk := docker.New()
+	fg := forge.New()
 	u := updater.New()
 
 	if err := stg.Boot(); err != nil {
@@ -90,6 +92,7 @@ func main() {
 			ls.Boot(log, stg, sg)
 			sh.Boot(log, stg, sg)
 			dk.Boot(log, stg, sg)
+			fg.Boot(log, stg)
 			php.Boot(log, stg, sg, sh, dk)
 			f.Boot(log, stg)
 			p.Boot(log, stg)
@@ -127,6 +130,7 @@ func main() {
 			h,
 			sh,
 			dk,
+			fg,
 			u,
 		},
 		EnumBind: []interface{}{

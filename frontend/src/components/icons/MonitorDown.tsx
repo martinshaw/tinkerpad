@@ -3,6 +3,7 @@ import { Component, JSX } from 'solid-js';
 const MonitorDown: Component<JSX.SvgSVGAttributes<SVGSVGElement>> = props => {
     return (
         <svg
+            {...props}
             xmlns="http://www.w3.org/2000/svg"
             width="24"
             height="24"
@@ -12,7 +13,6 @@ const MonitorDown: Component<JSX.SvgSVGAttributes<SVGSVGElement>> = props => {
             stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"
-            {...props}
         >
             <path d="M12 13V7" />
             <path d="m15 10-3 3-3-3" />

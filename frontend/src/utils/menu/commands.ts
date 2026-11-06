@@ -53,6 +53,7 @@ export type MenuCommand =
     | 'screen-projects'
     | 'screen-ssh'
     | 'screen-docker'
+    | 'screen-forge'
     | 'screen-database'
     | 'screen-settings'
     | 'use-local-php'
@@ -199,6 +200,9 @@ export const runMenuCommand = async (command: MenuCommand | string) => {
             return;
         case 'screen-docker':
             toggleScreen(Screen.Docker);
+            return;
+        case 'screen-forge':
+            toggleScreen(Screen.Forge);
             return;
         case 'screen-database':
             toggleScreen(Screen.Database);

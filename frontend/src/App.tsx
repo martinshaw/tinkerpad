@@ -12,6 +12,7 @@ import Favorites from './components/favorites/Favorites';
 import History from './components/history/History';
 import SshConfig from './components/ssh/Config';
 import DockerConfig from './components/docker/Config';
+import ForgeConfig from './components/forge/Config';
 import { CheckUpdate } from '../wailsjs/go/updater/Updater';
 import Projects from './components/projects/Projects';
 import Database from './components/database/Database';
@@ -74,6 +75,9 @@ const App: Component = () => {
                 </Match>
                 <Match when={generalStore.currentScreen === Screen.Docker}>
                     <DockerConfig />
+                </Match>
+                <Match when={generalStore.currentScreen === Screen.Forge}>
+                    <ForgeConfig />
                 </Match>
                 <Match when={generalStore.currentScreen === Screen.Projects}>
                     <Projects />

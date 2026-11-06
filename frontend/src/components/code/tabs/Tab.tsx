@@ -5,6 +5,7 @@ import XMark from '../../icons/XMark';
 import { useGeneralStore } from '../../../stores/general';
 import Server from '../../icons/Server';
 import Docker from '../../icons/Docker';
+import Forge from '../../icons/Forge';
 
 type MenuItem = {
     label: string;
@@ -209,6 +210,9 @@ const Tab: Component<{
                 </Show>
                 <Show when={!props.tab.pinned && props.tab.containerInfo}>
                     <Docker class="w-3 h-3 shrink-0 opacity-70 pointer-events-none" />
+                </Show>
+                <Show when={!props.tab.pinned && props.tab.forgeSite}>
+                    <Forge class="w-3 h-3 shrink-0 opacity-70 pointer-events-none" />
                 </Show>
                 <Show when={!props.tab.pinned}>
                     <span class="truncate grow text-left pointer-events-none">
