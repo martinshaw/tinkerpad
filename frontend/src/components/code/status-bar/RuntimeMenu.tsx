@@ -65,7 +65,7 @@ const RuntimeMenu: Component<{ tab: Tab }> = props => {
             >
                 <Database class="w-3.5 opacity-70" />
                 <span class="grow text-left">Database</span>
-                {hint('mod', '7')}
+                {hint('mod', '8')}
             </button>
         </StatusPopover>
     );

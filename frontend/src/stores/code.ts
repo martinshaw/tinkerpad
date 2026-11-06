@@ -23,6 +23,7 @@ import {
     GetContainerPhpBinaryPath,
     Save as SaveDockerContainers,
 } from '../../wailsjs/go/docker/Docker';
+import { RunCode as RunForgeCode } from '../../wailsjs/go/forge/Forge';
 import { FrameworkInfo } from '../components/code/status-bar/FrameworkInfoLabel';
 import { parseRunResult, RunEnvelope, TabResult } from '../utils/result/parse';
 import { sessionSpec } from '../utils/session/spec';
@@ -566,6 +567,10 @@ const newCodeStore: CodeStore = {
             clearProject(tabId);
         }
         setStore('tabs', tab => tab.id === tabId, 'sshConn', sshConn);
+        if (sshConn) {
+            setStore('tabs', tab => tab.id === tabId, 'forgeSite', undefined);
+            setStore('tabs', tab => tab.id === tabId, 'containerInfo', undefined);
+        }
     },
     setTabContainerInfo(tabId: string, info?: models.docker.ContainerInfo) {
         const current = store.tabs.find(tab => tab.id === tabId);
@@ -577,6 +582,10 @@ const newCodeStore: CodeStore = {
             clearProject(tabId);
         }
         setStore('tabs', tab => tab.id === tabId, 'containerInfo', info);
+        if (info) {
+            setStore('tabs', tab => tab.id === tabId, 'forgeSite', undefined);
+            setStore('tabs', tab => tab.id === tabId, 'sshConn', undefined);
+        }
     },
     async switchToLocal(tabId: string, workingDir?: string, keepFile: boolean = false) {
         const tab = store.tabs.find(item => item.id === tabId);
@@ -590,6 +599,7 @@ const newCodeStore: CodeStore = {
         clearProject(tabId);
         setStore('tabs', item => item.id === tabId, 'sshConn', undefined);
         setStore('tabs', item => item.id === tabId, 'containerInfo', undefined);
+        setStore('tabs', item => item.id === tabId, 'forgeSite', undefined);
         if (!keepFile) {
             setStore('tabs', item => item.id === tabId, 'filePath', '');
         }
@@ -610,6 +620,7 @@ const newCodeStore: CodeStore = {
         if (tab.containerInfo) {
             setStore('tabs', item => item.id === tabId, 'containerInfo', undefined);
         }
+        setStore('tabs', item => item.id === tabId, 'forgeSite', undefined);
         clearProject(tabId);
         const connUuid = await ConnectSsh(config);
         setStore('tabs', item => item.id === tabId, 'sshConn', {
@@ -632,6 +643,7 @@ const newCodeStore: CodeStore = {
             await RemoveConn(tab.sshConn.uuid);
             setStore('tabs', item => item.id === tabId, 'sshConn', undefined);
         }
+        setStore('tabs', item => item.id === tabId, 'forgeSite', undefined);
         clearProject(tabId);
 
         let phpBinary = info.phpBinaryPath;
@@ -652,6 +664,29 @@ const newCodeStore: CodeStore = {
             setStore('tabs', item => item.id === tabId, 'workingDir', prepared.workingDir);
             rememberDir(prepared.workingDir);
         }
+    },
+    async connectForgeSite(tabId: string, site: ForgeSite) {
+        const tab = store.tabs.find(item => item.id === tabId);
+        if (!tab) {
+            return;
+        }
+        await StopSession(tabId);
+        if (tab.sshConn) {
+            await RemoveConn(tab.sshConn.uuid);
+            setStore('tabs', item => item.id === tabId, 'sshConn', undefined);
+        }
+        if (tab.containerInfo) {
+            setStore('tabs', item => item.id === tabId, 'containerInfo', undefined);
+        }
+        clearProject(tabId);
+        setStore('tabs', item => item.id === tabId, 'forgeSite', site);
+        setStore(
+            'tabs',
+            item => item.id === tabId,
+            'workingDir',
+            `forge://${site.profileName}/${site.serverName}/${site.siteName}`,
+        );
+        setStore('outputType', OutputType.Raw);
     },
     setPersistent(tabId: string, persistent: boolean) {
         setStore('tabs', tab => tab.id === tabId, 'persistent', persistent);
@@ -761,6 +796,7 @@ const newCodeStore: CodeStore = {
         setStore('tabs', item => item.id === tabId, 'workingDir', workingDir);
         setStore('tabs', item => item.id === tabId, 'sshConn', sshConn);
         setStore('tabs', item => item.id === tabId, 'containerInfo', containerInfo);
+        setStore('tabs', item => item.id === tabId, 'forgeSite', undefined);
     },
     async openProject(project: projects.Project, asNewTab: boolean) {
         if (asNewTab) {
@@ -858,6 +894,13 @@ const newCodeStore: CodeStore = {
     },
     async getTabFrameworkInfo(tabId: string): Promise<FrameworkInfo> {
         const tab = store.tabs.find(item => item.id === tabId)!;
+        if (tab.forgeSite) {
+            return {
+                framework_name: 'Laravel Forge',
+                framework_version: `${tab.forgeSite.profileName} · ${tab.forgeSite.siteName}`,
+                php_version: 'remote',
+            };
+        }
 
         const info = tab.containerInfo
             ? await GetDockerFrameworkInfo(tab.containerInfo.id)
@@ -884,32 +927,42 @@ const newCodeStore: CodeStore = {
         );
 
         try {
-            const useSession =
-                current.persistent !== false ||
-                current.queryLog === true ||
-                current.dumpAssignments === true;
             let result: RunEnvelope;
-            if (useSession) {
-                result = await SessionExec(
-                    current.id,
-                    sessionSpec(current),
-                    new models.php.SessionRequest({
-                        op: 'run',
-                        code,
-                        queryLog: current.queryLog === true,
-                        dumpAssignments: current.dumpAssignments === true,
-                        dumpLogs: current.dumpLogs !== false,
-                    }),
+            if (current.forgeSite) {
+                await StopSession(current.id);
+                result = await RunForgeCode(
+                    current.forgeSite.profileUuid,
+                    current.forgeSite.serverId,
+                    current.forgeSite.siteId,
+                    code,
                 );
-            } else if (current.containerInfo) {
-                await StopSession(current.id);
-                result = await RunDockerCode(current.containerInfo.id, code);
-            } else if (current.sshConn) {
-                await StopSession(current.id);
-                result = await RunRemoteCode(current.sshConn.uuid, code);
             } else {
-                await StopSession(current.id);
-                result = await RunCode(current.workingDir, code, current.phpBinaryPath || '');
+                const useSession =
+                    current.persistent !== false ||
+                    current.queryLog === true ||
+                    current.dumpAssignments === true;
+                if (useSession) {
+                    result = await SessionExec(
+                        current.id,
+                        sessionSpec(current),
+                        new models.php.SessionRequest({
+                            op: 'run',
+                            code,
+                            queryLog: current.queryLog === true,
+                            dumpAssignments: current.dumpAssignments === true,
+                            dumpLogs: current.dumpLogs !== false,
+                        }),
+                    );
+                } else if (current.containerInfo) {
+                    await StopSession(current.id);
+                    result = await RunDockerCode(current.containerInfo.id, code);
+                } else if (current.sshConn) {
+                    await StopSession(current.id);
+                    result = await RunRemoteCode(current.sshConn.uuid, code);
+                } else {
+                    await StopSession(current.id);
+                    result = await RunCode(current.workingDir, code, current.phpBinaryPath || '');
+                }
             }
 
             store.setTabResult(current.id, result);
@@ -1044,6 +1097,7 @@ const persistableCodeState = () => ({
         size: tab.size,
         sshConn: tab.sshConn,
         containerInfo: tab.containerInfo,
+        forgeSite: tab.forgeSite,
         projectId: tab.projectId,
         projectName: tab.projectName,
         projectColor: tab.projectColor,
@@ -1136,6 +1190,7 @@ export interface CodeStore {
     switchToLocal(tabId: string, workingDir?: string, keepFile?: boolean): Promise<void>;
     connectSshConfig(tabId: string, config: models.ssh.SshConnectionConfig): Promise<void>;
     connectDockerContainer(tabId: string, info: models.docker.ContainerInfo): Promise<void>;
+    connectForgeSite(tabId: string, site: ForgeSite): Promise<void>;
     setPersistent(tabId: string, persistent: boolean): void;
     setQueryLog(tabId: string, enabled: boolean): void;
     setDumpAssignments(tabId: string, enabled: boolean): void;
@@ -1163,6 +1218,15 @@ export interface SSHConnection {
     color: string;
 }
 
+export interface ForgeSite {
+    profileUuid: string;
+    profileName: string;
+    serverId: number;
+    siteId: number;
+    serverName: string;
+    siteName: string;
+}
+
 export interface Tab {
     id: string;
     workingDir: string;
@@ -1172,6 +1236,7 @@ export interface Tab {
     loading: boolean;
     sshConn?: SSHConnection;
     containerInfo?: models.docker.ContainerInfo;
+    forgeSite?: ForgeSite;
     size?: number;
     projectId?: string;
     projectName?: string;

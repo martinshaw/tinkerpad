@@ -16,7 +16,14 @@ const FrameworkInfoLabel: Component<{ tab: Tab }> = props => {
         return await codeStore.getTabFrameworkInfo(tab.id);
     });
 
-    createEffect(() => refetch([props.tab.workingDir, props.tab.containerInfo, props.tab.sshConn]));
+    createEffect(() =>
+        refetch([
+            props.tab.workingDir,
+            props.tab.containerInfo,
+            props.tab.sshConn,
+            props.tab.forgeSite,
+        ]),
+    );
 
     return (
         <div

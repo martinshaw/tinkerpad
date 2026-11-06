@@ -20,6 +20,7 @@ export enum Screen {
     History,
     Ssh,
     Docker,
+    Forge,
     Projects,
     Database,
 }

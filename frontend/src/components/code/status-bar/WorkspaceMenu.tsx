@@ -1,16 +1,18 @@
-import { Component, createMemo, createResource, For, onMount, Show } from 'solid-js';
-import { Tab, useCodeStore } from '../../../stores/code';
+import { Component, createMemo, createResource, createSignal, For, onMount, Show } from 'solid-js';
+import { ForgeSite, Tab, useCodeStore } from '../../../stores/code';
 import { Screen, useGeneralStore } from '../../../stores/general';
 import { loadProjects, useProjects } from '../../../stores/projects';
 import { GetAll as GetHistory } from '../../../../wailsjs/go/history/History';
 import { GetAll as GetSshConfigs } from '../../../../wailsjs/go/ssh/Ssh';
 import { GetAll as GetDockerContainers } from '../../../../wailsjs/go/docker/Docker';
+import { GetProfiles, ListAllSites } from '../../../../wailsjs/go/forge/Forge';
 import { Error as ShowError, SelectDir } from '../../../../wailsjs/go/dialog/Dialog';
 import StatusPopover, { menuItemClass, menuSectionClass } from './StatusPopover';
 import FolderCode from '../../icons/FolderCode';
 import FolderOpen from '../../icons/FolderOpen';
 import Server from '../../icons/Server';
 import Docker from '../../icons/Docker';
+import Forge from '../../icons/Forge';
 import FileJson from '../../icons/FileJson';
 import * as models from '../../../../wailsjs/go/models';
 import { shortcutLabel } from '../../../utils/hotkey/mod';
@@ -32,8 +34,34 @@ const WorkspaceMenu: Component<{ tab: Tab }> = props => {
         async () => await GetDockerContainers(),
     );
     const [history] = createResource(async () => await GetHistory());
-
+    const [selectedProfileUuid, setSelectedProfileUuid] = createSignal(
+        props.tab.forgeSite?.profileUuid || '',
+    );
+    const [forgeProfiles, { refetch: refetchForgeProfiles }] = createResource(async () => {
+        const profiles = await GetProfiles();
+        if (!selectedProfileUuid() && profiles.length > 0) {
+            setSelectedProfileUuid(props.tab.forgeSite?.profileUuid || profiles[0].uuid);
+        }
+        return profiles;
+    });
+    const [forgeSites, { refetch: refetchForgeSites }] = createResource(
+        () => selectedProfileUuid(),
+        async profileUuid => {
+            if (!profileUuid) {
+                return [];
+            }
+            try {
+                return await ListAllSites(profileUuid);
+            } catch (error) {
+                await ShowError(error instanceof Error ? error.message : String(error));
+                return [];
+            }
+        },
+    );
     const runtime = createMemo(() => {
+        if (props.tab.forgeSite) {
+            return 'forge' as const;
+        }
         if (props.tab.containerInfo) {
             return 'docker' as const;
         }
@@ -46,6 +74,9 @@ const WorkspaceMenu: Component<{ tab: Tab }> = props => {
     const runTargetName = createMemo(() => {
         if (props.tab.projectName) {
             return props.tab.projectName;
+        }
+        if (props.tab.forgeSite) {
+            return `${props.tab.forgeSite.profileName} / ${props.tab.forgeSite.siteName}`;
         }
         if (props.tab.containerInfo) {
             return props.tab.containerInfo.name;
@@ -66,6 +97,9 @@ const WorkspaceMenu: Component<{ tab: Tab }> = props => {
     const runtimeLabel = createMemo(() => {
         if (props.tab.filePath) {
             return `in ${runTargetName()}`;
+        }
+        if (runtime() === 'forge') {
+            return 'Forge';
         }
         if (runtime() === 'docker') {
             return 'Docker';
@@ -159,6 +193,30 @@ const WorkspaceMenu: Component<{ tab: Tab }> = props => {
         }
     };
 
+    const selectedProfile = createMemo(
+        () => (forgeProfiles() || []).find(p => p.uuid === selectedProfileUuid()),
+    );
+
+    const connectForge = async (site: models.forge.SiteOption) => {
+        const profile = selectedProfile();
+        if (!profile) {
+            return;
+        }
+        const next: ForgeSite = {
+            profileUuid: profile.uuid,
+            profileName: profile.name,
+            serverId: site.serverId,
+            siteId: site.siteId,
+            serverName: site.serverName,
+            siteName: site.siteName,
+        };
+        try {
+            await codeStore.connectForgeSite(props.tab.id, next);
+        } catch (error) {
+            await ShowError(error instanceof Error ? error.message : String(error));
+        }
+    };
+
     return (
         <StatusPopover
             title="Workspace"
@@ -166,17 +224,24 @@ const WorkspaceMenu: Component<{ tab: Tab }> = props => {
             label={
                 <>
                     <Show
-                        when={runtime() === 'docker'}
+                        when={runtime() === 'forge'}
                         fallback={
                             <Show
-                                when={runtime() === 'ssh'}
-                                fallback={<FolderCode class="w-4 min-w-4" />}
+                                when={runtime() === 'docker'}
+                                fallback={
+                                    <Show
+                                        when={runtime() === 'ssh'}
+                                        fallback={<FolderCode class="w-4 min-w-4" />}
+                                    >
+                                        <Server class="w-4 min-w-4" />
+                                    </Show>
+                                }
                             >
-                                <Server class="w-4 min-w-4" />
+                                <Docker class="w-4 min-w-4" />
                             </Show>
                         }
                     >
-                        <Docker class="w-4 min-w-4" />
+                        <Forge class="w-4 min-w-4" />
                     </Show>
                     <span class="max-w-[8rem] truncate">{labelName()}</span>
                     <span class="opacity-50 text-[10px] uppercase tracking-wide">
@@ -373,6 +438,83 @@ const WorkspaceMenu: Component<{ tab: Tab }> = props => {
             >
                 <Docker class="w-3.5" />
                 Connect / manage Docker…
+            </button>
+
+            <div class={menuSectionClass}>Forge Commands</div>
+            <Show when={(forgeProfiles() || []).length === 0}>
+                <div class={emptyClass}>No Forge profiles</div>
+            </Show>
+            <For each={forgeProfiles() || []}>
+                {profile => (
+                    <button
+                        type="button"
+                        data-keep-open
+                        class={menuItemClass}
+                        classList={{
+                            'font-semibold': selectedProfileUuid() === profile.uuid,
+                        }}
+                        title={profile.tokenMasked}
+                        on:click={() => setSelectedProfileUuid(profile.uuid)}
+                    >
+                        <span
+                            class="w-2 h-2 rounded-full shrink-0"
+                            style={{ 'background-color': profile.color || '#f53003' }}
+                        />
+                        <span class="truncate grow text-left">{profile.name}</span>
+                        <span class="opacity-50 text-[10px] truncate max-w-[5rem]">
+                            {profile.tokenMasked}
+                        </span>
+                    </button>
+                )}
+            </For>
+            <Show when={selectedProfile()}>
+                <div class={`${emptyClass} !opacity-70 text-[11px]`}>
+                    Sites · {selectedProfile()!.name}
+                </div>
+                <Show when={(forgeSites() || []).length === 0}>
+                    <div class={emptyClass}>No sites found</div>
+                </Show>
+                <For each={forgeSites() || []}>
+                    {site => (
+                        <button
+                            type="button"
+                            class={menuItemClass}
+                            classList={{
+                                'font-semibold':
+                                    props.tab.forgeSite?.profileUuid === selectedProfileUuid() &&
+                                    props.tab.forgeSite?.serverId === site.serverId &&
+                                    props.tab.forgeSite?.siteId === site.siteId,
+                            }}
+                            title={site.label}
+                            on:click={() => connectForge(site)}
+                        >
+                            <Forge class="w-3.5 min-w-3.5 opacity-70" />
+                            <span class="truncate">{site.siteName}</span>
+                            <span class="opacity-50 text-[10px] truncate max-w-[5rem]">
+                                {site.serverName}
+                            </span>
+                        </button>
+                    )}
+                </For>
+                <button
+                    type="button"
+                    data-keep-open
+                    class={menuItemClass}
+                    on:click={() => void refetchForgeSites()}
+                >
+                    Refresh sites
+                </button>
+            </Show>
+            <button
+                type="button"
+                class={menuItemClass}
+                on:click={() => {
+                    void refetchForgeProfiles();
+                    generalStore.setCurrentScreen(Screen.Forge);
+                }}
+            >
+                <Forge class="w-3.5" />
+                Connect / manage Forge…
             </button>
         </StatusPopover>
     );

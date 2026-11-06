@@ -25,9 +25,15 @@ const Result: Component<{ tab: Tab }> = props => {
         editor?.updateOptions({ fontSize, fontFamily, lineHeight });
     });
 
-    createEffect(() =>
-        editor?.setValue((props.tab.result?.outputs ?? []).map(value => value.raw).join('\n')),
-    );
+    createEffect(() => {
+        const result = props.tab.result;
+        const body = (result?.outputs ?? []).map(value => value.raw).join('\n');
+        const text =
+            result?.error && body
+                ? `${result.error}\n\n${body}`
+                : result?.error || body || '';
+        editor?.setValue(text);
+    });
 
     onCleanup(async () => editor?.dispose());
 

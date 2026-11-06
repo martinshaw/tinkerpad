@@ -35,7 +35,8 @@ func Build() *menu.Menu {
 	view.AddText("Projects", keys.CmdOrCtrl("4"), emit("screen-projects"))
 	view.AddText("SSH", keys.CmdOrCtrl("5"), emit("screen-ssh"))
 	view.AddText("Docker", keys.CmdOrCtrl("6"), emit("screen-docker"))
-	view.AddText("Database", keys.CmdOrCtrl("7"), emit("screen-database"))
+	view.AddText("Forge", keys.CmdOrCtrl("7"), emit("screen-forge"))
+	view.AddText("Database", keys.CmdOrCtrl("8"), emit("screen-database"))
 	view.AddText("Settings…", keys.CmdOrCtrl(","), emit("screen-settings"))
 	view.AddSeparator()
 	view.AddText("Toggle Output", keys.CmdOrCtrl("u"), emit("toggle-result"))
@@ -71,6 +72,7 @@ func Build() *menu.Menu {
 	workspace.AddText("Manage Projects…", nil, emit("screen-projects"))
 	workspace.AddText("Manage SSH…", nil, emit("screen-ssh"))
 	workspace.AddText("Manage Docker…", nil, emit("screen-docker"))
+	workspace.AddText("Manage Forge…", nil, emit("screen-forge"))
 	workspace.AddText("Database…", nil, emit("screen-database"))
 
 	m.Append(menu.WindowMenu())

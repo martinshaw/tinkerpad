@@ -42,7 +42,10 @@ const StatusPopover: Component<{
                 type="button"
                 title={props.title}
                 class="h-full px-3 flex items-center gap-1.5 whitespace-nowrap hover:brightness-110 select-none"
-                style={{ 'background-color': generalStore.themeInfo.colors.background }}
+                style={{
+                    'background-color': generalStore.themeInfo.colors.background,
+                    color: generalStore.themeInfo.colors.primary,
+                }}
                 on:click={() => setOpen(value => !value)}
             >
                 {props.label}
