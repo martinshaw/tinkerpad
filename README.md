@@ -90,8 +90,8 @@ When a newer release is published, the title bar can show **Update** and open a 
 ### Publishing a release (maintainers)
 
 ```shell
-git tag v1.1.0
-git push origin v1.1.0
+git tag v1.2.0
+git push origin v1.2.0
 ```
 
 Or run the **Release** workflow from the Actions tab (`workflow_dispatch`). CI builds macOS, Linux (amd64/arm64), and Windows artifacts and attaches them to the GitHub Release.
@@ -135,7 +135,7 @@ After changing `php/`, rebuild the embedded runner:
 make phar
 ```
 
-`make help` lists all targets. Optional: `VERSION=v1.1.0 ENCRYPT_SECRET=… make build`.
+`make help` lists all targets. Optional: `VERSION=v1.2.0 ENCRYPT_SECRET=… make build`.
 
 ---
 

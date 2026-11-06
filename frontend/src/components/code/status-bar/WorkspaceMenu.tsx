@@ -205,6 +205,7 @@ const WorkspaceMenu: Component<{ tab: Tab }> = props => {
         const next: ForgeSite = {
             profileUuid: profile.uuid,
             profileName: profile.name,
+            orgSlug: site.orgSlug,
             serverId: site.serverId,
             siteId: site.siteId,
             serverName: site.serverName,
