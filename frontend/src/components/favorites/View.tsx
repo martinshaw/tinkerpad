@@ -5,7 +5,6 @@ import { useCodeStore } from '../../stores/code';
 import Code from './Code';
 import { Screen, useGeneralStore } from '../../stores/general';
 import Button from '../Button';
-import { getSnippetModel } from '../../utils/editor/model';
 import { GetAll as GetProjects } from '../../../wailsjs/go/projects/Projects';
 import { Error as ShowError } from '../../../wailsjs/go/dialog/Dialog';
 
@@ -14,28 +13,30 @@ const View: Component<{ favorite: favorites.Favorite }> = props => {
     const [generalStore] = useGeneralStore();
 
     const applyTarget = async (asNewTab: boolean) => {
-        if (asNewTab) {
-            codeStore.createNewTab();
-        }
+        // Resolve project before creating/switching tabs so the editor mounts
+        // with the final working dir + code (not an empty stub).
+        let project;
         if (props.favorite.projectId) {
             const projects = await GetProjects();
-            const project = projects.find(item => item.uuid === props.favorite.projectId);
-            if (project) {
-                try {
-                    await codeStore.applyProject(codeStore.currentTabId, project);
-                } catch (error) {
-                    await ShowError(error instanceof Error ? error.message : String(error));
-                }
-            } else {
-                codeStore.setTabWorkingDir(codeStore.currentTabId, props.favorite.workingDir);
+            project = projects.find(item => item.uuid === props.favorite.projectId);
+        }
+
+        if (asNewTab) {
+            codeStore.createNewTab(false, undefined, false);
+        }
+
+        const tabId = codeStore.currentTabId;
+        if (project) {
+            try {
+                await codeStore.applyProject(tabId, project);
+            } catch (error) {
+                await ShowError(error instanceof Error ? error.message : String(error));
             }
         } else if (props.favorite.workingDir) {
-            codeStore.setTabWorkingDir(codeStore.currentTabId, props.favorite.workingDir);
+            codeStore.setTabWorkingDir(tabId, props.favorite.workingDir);
         }
-        codeStore.setTabCode(codeStore.currentTabId, props.favorite.code);
-        if (!asNewTab) {
-            getSnippetModel(codeStore.currentTab)?.setValue(props.favorite.code);
-        }
+
+        codeStore.setTabCode(tabId, props.favorite.code);
         generalStore.setCurrentScreen(Screen.Code);
     };
 

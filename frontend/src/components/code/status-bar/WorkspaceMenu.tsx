@@ -122,8 +122,6 @@ const WorkspaceMenu: Component<{ tab: Tab }> = props => {
 
     const recentDirs = createMemo(() => {
         const fromHistory = (history() || [])
-            .slice()
-            .reverse()
             .map(item => item.workingDir)
             .filter(Boolean);
         const fromTabs = codeStore.tabs.map(tab => tab.workingDir);

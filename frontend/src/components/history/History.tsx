@@ -9,9 +9,9 @@ const basename = (path: string) => path.split('/').filter(Boolean).pop() || path
 const History: Component = () => {
     const [currentIndex, setCurrentIndex] = createSignal(0);
     const [logs] = createResource(async () => {
-        const logs = await GetAll();
-        setCurrentIndex(Math.max(0, logs.length - 1));
-        return logs;
+        const next = await GetAll();
+        setCurrentIndex(0);
+        return next;
     });
     const currentLog = createMemo(() => (!logs.loading ? logs()?.[currentIndex()] : undefined));
 

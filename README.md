@@ -1,4 +1,10 @@
+<div align="center">
+<img src="build/appicon.png" width="128" alt="Tinkerpad" />
+</div>
+
 # Tinkerpad
+
+<div align="center">
 
 ![License](https://img.shields.io/github/license/martinshaw/tinkerpad)
 ![GitHub release](https://img.shields.io/github/release/martinshaw/tinkerpad)
@@ -7,6 +13,8 @@
 ![GitHub forks](https://img.shields.io/github/forks/martinshaw/tinkerpad)
 
 **A fast desktop PHP playground for local, SSH, and Docker workspaces.**
+
+</div>
 
 ## Get started
 
