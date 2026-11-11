@@ -609,11 +609,13 @@ const StructuredResult: Component<{ result: TabResult; tab?: Tab }> = props => {
     onCleanup(() => closeDumpMenu());
 
     return (
-        <div
-            ref={resultPane}
-            class="h-full min-h-0 px-3 py-3 overflow-x-hidden overflow-y-auto soft-scrollbar"
-            classList={{ 'py-2': codeStore.layout === Layout.Horizontal }}
-        />
+        <div class="h-full w-full min-h-0 overflow-auto soft-scrollbar">
+            <div
+                ref={resultPane}
+                class="min-h-full px-3 py-3"
+                classList={{ 'py-2': codeStore.layout === Layout.Horizontal }}
+            />
+        </div>
     );
 };
 
