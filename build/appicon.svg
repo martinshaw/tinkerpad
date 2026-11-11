@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Tinkerpad">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FF4A3D"/>
+      <stop offset="100%" stop-color="#E12A1C"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" ry="28" fill="url(#g)"/>
+  <g fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M46 34 L24 64 L46 94"/>
+    <path d="M82 34 L104 64 L82 94"/>
+    <path d="M72 34 L56 94"/>
+  </g>
+</svg>

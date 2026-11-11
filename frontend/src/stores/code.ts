@@ -28,6 +28,7 @@ import { FrameworkInfo } from '../components/code/status-bar/FrameworkInfoLabel'
 import { parseRunResult, RunEnvelope, TabResult } from '../utils/result/parse';
 import { sessionSpec } from '../utils/session/spec';
 import { codeUntilLine } from '../utils/editor/code-range';
+import { getSnippetModel } from '../utils/editor/model';
 import { projects } from '../../wailsjs/go/models';
 import {
     Error as ShowError,
@@ -220,8 +221,12 @@ const newCodeStore: CodeStore = {
     paneOrientation: 'row',
     paneSizes: [50, 50],
     ...(rawData ? JSON.parse(rawData) : getDefaultData()),
-    createNewTab(atCurrentPosition: boolean = false, paneId?: string) {
-        if (generalStore.currentScreen !== Screen.Code) {
+    createNewTab(
+        atCurrentPosition: boolean = false,
+        paneId?: string,
+        switchToCode: boolean = true,
+    ) {
+        if (switchToCode && generalStore.currentScreen !== Screen.Code) {
             generalStore.setCurrentScreen(Screen.Code);
         }
         const newTab = getNewTab();
@@ -537,6 +542,14 @@ const newCodeStore: CodeStore = {
     setTabCode(tabId: string, code: string) {
         setStore('tabs', tab => tab.id === tabId, 'code', code);
         setStore('tabs', tab => tab.id === tabId, 'dirty', true);
+        const tab = store.tabs.find(item => item.id === tabId);
+        if (!tab) {
+            return;
+        }
+        const model = getSnippetModel(tab);
+        if (model && model.getValue() !== code) {
+            model.setValue(code);
+        }
     },
     setTabSize(tabId: string, size: number) {
         setStore('tabs', tab => tab.id === tabId, 'size', size);
@@ -1165,7 +1178,7 @@ export interface CodeStore {
     showFileTree: boolean;
     recentDirs: string[];
     recentFiles: string[];
-    createNewTab(atCurrentPosition?: boolean, paneId?: string): void;
+    createNewTab(atCurrentPosition?: boolean, paneId?: string, switchToCode?: boolean): void;
     setCurrentTab(tabId: string): void;
     focusPane(paneId: string): void;
     setPaneActiveTab(paneId: string, tabId: string): void;
